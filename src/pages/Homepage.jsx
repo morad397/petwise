@@ -2,20 +2,34 @@ import { Link } from 'react-router-dom';
 
 function Homepage() {
   return (
-    <div>
-      <div className="navbar">
-        <h2>PetWise</h2>
-      </div>
-
-      <div className="hero-section">
-        <h1>Smart Pet Care Management</h1>
-        <p>Your pets deserve the best care. We make it simple.</p>
-        <p>Track feeding, vaccinations, vet visits, weight, and get AI-powered recommendations — all in one place.</p>
-        <div className="hero-buttons">
-          <Link to="/signup" className="btn btn-primary">Get Started</Link>
-          <Link to="/login" className="btn btn-outline">Log In</Link>
+    <div className="homepage-shell">
+      <header className="topbar">
+        <div className="brand-lockup">
+          <span className="brand-icon">🐾</span>
+          <span className="brand-name">Petwise</span>
         </div>
-      </div>
+      </header>
+
+      <main>
+        <section className="hero-grid simple-hero">
+          <div className="hero-copy hero-copy-centered">
+            <div className="pill-badge">
+              <span>✨</span>
+              <span>Pet care made simple</span>
+            </div>
+
+            <h1>Welcome to Petwise</h1>
+            <p>
+              A clean and modern place to manage your pet’s daily care, routine, and health records.
+            </p>
+
+            <div className="hero-buttons hero-buttons-centered">
+              <Link to="/login" className="btn btn-secondary btn-large">Log In</Link>
+              <Link to="/signup" className="btn btn-primary btn-large">Sign Up</Link>
+            </div>
+          </div>
+        </section>
+      </main>
     </div>
   );
 }

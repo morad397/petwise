@@ -13,22 +13,40 @@ function FeedingSchedule() {
   const feedings = sampleFeedings.filter((f) => f.petId === Number(id));
 
   return (
-    <div>
-      <Link to={`/pets/${id}`}>← Back to Pet Profile</Link>
-      <h1>Feeding Schedule</h1>
+    <div className="app-shell">
+      <header className="page-topbar">
+        <div className="brand-lockup">
+          <span className="brand-icon">🐾</span>
+          <span className="brand-name">PetPal</span>
+        </div>
+        <nav className="main-nav">
+          <Link to={`/pets/${id}`}>Back to Profile</Link>
+          <Link to="/dashboard">Dashboard</Link>
+        </nav>
+      </header>
 
-      {feedings.length === 0 ? (
-        <p>No feeding schedule found for this pet.</p>
-      ) : (
-        feedings.map((feeding) => (
-          <div key={feeding.id}>
-            <h3>{feeding.time}</h3>
-            <p>Food: {feeding.food}</p>
-            <p>Notes: {feeding.notes}</p>
-            <hr />
+      <main className="page-inner">
+        <section className="section-card">
+          <p className="eyebrow">Feeding routine</p>
+          <h1>Feeding Schedule</h1>
+
+          <div className="timeline-list">
+            {feedings.length === 0 ? (
+              <p className="empty-state">No feeding schedule found for this pet.</p>
+            ) : (
+              feedings.map((feeding) => (
+                <article className="event-card" key={feeding.id}>
+                  <div className="event-time">{feeding.time}</div>
+                  <div>
+                    <h3>{feeding.food}</h3>
+                    <p>{feeding.notes}</p>
+                  </div>
+                </article>
+              ))
+            )}
           </div>
-        ))
-      )}
+        </section>
+      </main>
     </div>
   );
 }

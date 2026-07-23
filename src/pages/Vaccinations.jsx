@@ -20,37 +20,55 @@ function Vaccinations() {
   const medications = sampleMedications.filter((m) => m.petId === Number(id));
 
   return (
-    <div>
-      <Link to={`/pets/${id}`}>← Back to Pet Profile</Link>
+    <div className="app-shell">
+      <header className="page-topbar">
+        <div className="brand-lockup">
+          <span className="brand-icon">🐾</span>
+          <span className="brand-name">PetPal</span>
+        </div>
+        <nav className="main-nav">
+          <Link to={`/pets/${id}`}>Back to Profile</Link>
+          <Link to="/dashboard">Dashboard</Link>
+        </nav>
+      </header>
 
-      <h1>Vaccinations</h1>
-      {vaccinations.length === 0 ? (
-        <p>No vaccinations recorded.</p>
-      ) : (
-        vaccinations.map((vac) => (
-          <div key={vac.id}>
-            <h3>{vac.name}</h3>
-            <p>Date: {vac.date}</p>
-            <p>Next Due: {vac.nextDue}</p>
-            <p>Status: {vac.status}</p>
-            <hr />
+      <main className="page-inner">
+        <section className="section-card">
+          <p className="eyebrow">Health records</p>
+          <h1>Vaccinations</h1>
+          <div className="card-grid">
+            {vaccinations.length === 0 ? (
+              <p className="empty-state">No vaccinations recorded.</p>
+            ) : (
+              vaccinations.map((vac) => (
+                <article className="mini-card" key={vac.id}>
+                  <h3>{vac.name}</h3>
+                  <p>Date: {vac.date}</p>
+                  <p>Next Due: {vac.nextDue}</p>
+                  <span className="status-pill">{vac.status}</span>
+                </article>
+              ))
+            )}
           </div>
-        ))
-      )}
+        </section>
 
-      <h1>Medications</h1>
-      {medications.length === 0 ? (
-        <p>No medications recorded.</p>
-      ) : (
-        medications.map((med) => (
-          <div key={med.id}>
-            <h3>{med.name}</h3>
-            <p>Frequency: {med.frequency}</p>
-            <p>Next Dose: {med.nextDose}</p>
-            <hr />
+        <section className="section-card margin-top-24">
+          <h1>Medications</h1>
+          <div className="card-grid">
+            {medications.length === 0 ? (
+              <p className="empty-state">No medications recorded.</p>
+            ) : (
+              medications.map((med) => (
+                <article className="mini-card" key={med.id}>
+                  <h3>{med.name}</h3>
+                  <p>Frequency: {med.frequency}</p>
+                  <p>Next Dose: {med.nextDose}</p>
+                </article>
+              ))
+            )}
           </div>
-        ))
-      )}
+        </section>
+      </main>
     </div>
   );
 }

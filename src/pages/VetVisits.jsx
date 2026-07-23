@@ -12,23 +12,40 @@ function VetVisits() {
   const visits = sampleVisits.filter((v) => v.petId === Number(id));
 
   return (
-    <div>
-      <Link to={`/pets/${id}`}>← Back to Pet Profile</Link>
-      <h1>Vet Visits</h1>
+    <div className="app-shell">
+      <header className="page-topbar">
+        <div className="brand-lockup">
+          <span className="brand-icon">🐾</span>
+          <span className="brand-name">PetPal</span>
+        </div>
+        <nav className="main-nav">
+          <Link to={`/pets/${id}`}>Back to Profile</Link>
+          <Link to="/dashboard">Dashboard</Link>
+        </nav>
+      </header>
 
-      {visits.length === 0 ? (
-        <p>No vet visits recorded.</p>
-      ) : (
-        visits.map((visit) => (
-          <div key={visit.id}>
-            <h3>{visit.date}</h3>
-            <p>Vet: {visit.vet}</p>
-            <p>Reason: {visit.reason}</p>
-            <p>Notes: {visit.notes}</p>
-            <hr />
+      <main className="page-inner">
+        <section className="section-card">
+          <p className="eyebrow">Clinic history</p>
+          <h1>Vet Visits</h1>
+          <div className="timeline-list">
+            {visits.length === 0 ? (
+              <p className="empty-state">No vet visits recorded.</p>
+            ) : (
+              visits.map((visit) => (
+                <article className="event-card" key={visit.id}>
+                  <div className="event-time">{visit.date}</div>
+                  <div>
+                    <h3>{visit.reason}</h3>
+                    <p>Vet: {visit.vet}</p>
+                    <p>{visit.notes}</p>
+                  </div>
+                </article>
+              ))
+            )}
           </div>
-        ))
-      )}
+        </section>
+      </main>
     </div>
   );
 }
