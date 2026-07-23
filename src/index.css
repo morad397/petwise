@@ -796,6 +796,10 @@ img {
   overflow: hidden;
 }
 
+.onboarding-card {
+  min-height: 680px;
+}
+
 .auth-visual {
   background: linear-gradient(180deg, #eaf7f6 0%, #f7fbff 100%);
   padding: 28px;

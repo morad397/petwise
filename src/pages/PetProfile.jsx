@@ -1,27 +1,5 @@
+import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-
-const samplePets = [
-  {
-    id: 1,
-    name: 'Luna',
-    species: 'Cat',
-    breed: 'British Shorthair',
-    weight: '4.2 kg',
-    age: 3,
-    image:
-      'https://images.unsplash.com/photo-1511044568932-338cba0ad803?auto=format&fit=crop&w=900&q=80',
-  },
-  {
-    id: 2,
-    name: 'Rex',
-    species: 'Dog',
-    breed: 'Golden Retriever',
-    weight: '28 kg',
-    age: 5,
-    image:
-      'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?auto=format&fit=crop&w=900&q=80',
-  },
-];
 
 const quickLinks = [
   { label: 'Feeding Schedule', path: 'feeding' },
@@ -33,7 +11,13 @@ const quickLinks = [
 
 function PetProfile() {
   const { id } = useParams();
-  const pet = samplePets.find((p) => p.id === Number(id));
+  const [pet, setPet] = useState(null);
+
+  useEffect(() => {
+    const savedPets = JSON.parse(localStorage.getItem('petwise-pets') || '[]');
+    const matchedPet = savedPets.find((p) => p.id === Number(id));
+    setPet(matchedPet || null);
+  }, [id]);
 
   if (!pet) {
     return <p className="empty-state">Pet not found</p>;
