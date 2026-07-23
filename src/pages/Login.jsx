@@ -1,6 +1,45 @@
-import { Link } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 
 function Login() {
+  const navigate = useNavigate();
+  const [form, setForm] = useState({
+    email: '',
+    password: '',
+    role: '',
+    fullName: '',
+  });
+
+  useEffect(() => {
+    const savedUser = JSON.parse(localStorage.getItem('petwise-user') || '{}');
+    setForm((current) => ({
+      ...current,
+      email: savedUser.email || '',
+      fullName: savedUser.fullName || '',
+      role: savedUser.role || '',
+    }));
+  }, []);
+
+  function handleChange(event) {
+    const { name, value } = event.target;
+    setForm((current) => ({ ...current, [name]: value }));
+  }
+
+  function handleSubmit(event) {
+    event.preventDefault();
+    const savedUser = JSON.parse(localStorage.getItem('petwise-user') || '{}');
+
+    const nextUser = {
+      ...savedUser,
+      email: form.email,
+      role: form.role,
+      fullName: form.fullName || savedUser.fullName || 'Pet Owner',
+    };
+
+    localStorage.setItem('petwise-user', JSON.stringify(nextUser));
+    navigate('/dashboard');
+  }
+
   return (
     <div className="app-shell auth-shell">
       <div className="auth-card">
@@ -22,27 +61,32 @@ function Login() {
           <p className="eyebrow">Welcome back</p>
           <h2>Sign in to PetPal</h2>
 
-          <form className="form-card">
+          <form className="form-card" onSubmit={handleSubmit}>
+            <label className="form-group">
+              <span>Full Name</span>
+              <input type="text" name="fullName" value={form.fullName} onChange={handleChange} placeholder="Enter your full name" />
+            </label>
+
             <label className="form-group">
               <span>Email</span>
-              <input type="email" placeholder="you@example.com" />
+              <input type="email" name="email" value={form.email} onChange={handleChange} placeholder="you@example.com" />
             </label>
 
             <label className="form-group">
               <span>Password</span>
-              <input type="password" placeholder="Enter your password" />
+              <input type="password" name="password" value={form.password} onChange={handleChange} placeholder="Enter your password" />
             </label>
 
             <label className="form-group">
               <span>Login as</span>
-              <select>
+              <select name="role" value={form.role} onChange={handleChange}>
                 <option value="">Select role</option>
                 <option value="owner">Pet Owner</option>
                 <option value="admin">Admin</option>
               </select>
             </label>
 
-            <Link to="/dashboard" className="btn btn-primary btn-full">Log In</Link>
+            <button type="submit" className="btn btn-primary btn-full">Log In</button>
           </form>
 
           <p className="auth-link-row">
