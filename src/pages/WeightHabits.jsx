@@ -22,34 +22,52 @@ function WeightHabits() {
   const habits = sampleHabits.filter((h) => h.petId === Number(id));
 
   return (
-    <div>
-      <Link to={`/pets/${id}`}>← Back to Pet Profile</Link>
+    <div className="app-shell">
+      <header className="page-topbar">
+        <div className="brand-lockup">
+          <span className="brand-icon">🐾</span>
+          <span className="brand-name">PetPal</span>
+        </div>
+        <nav className="main-nav">
+          <Link to={`/pets/${id}`}>Back to Profile</Link>
+          <Link to="/dashboard">Dashboard</Link>
+        </nav>
+      </header>
 
-      <h1>Weight Log</h1>
-      {weightLog.length === 0 ? (
-        <p>No weight records found.</p>
-      ) : (
-        weightLog.map((entry) => (
-          <div key={entry.id}>
-            <h3>{entry.date}</h3>
-            <p>Weight: {entry.weight}</p>
-            <hr />
+      <main className="page-inner">
+        <section className="section-card">
+          <p className="eyebrow">Progress tracking</p>
+          <h1>Weight Log</h1>
+          <div className="card-grid">
+            {weightLog.length === 0 ? (
+              <p className="empty-state">No weight records found.</p>
+            ) : (
+              weightLog.map((entry) => (
+                <article className="mini-card" key={entry.id}>
+                  <h3>{entry.date}</h3>
+                  <p>Weight: {entry.weight}</p>
+                </article>
+              ))
+            )}
           </div>
-        ))
-      )}
+        </section>
 
-      <h1>Daily Habits</h1>
-      {habits.length === 0 ? (
-        <p>No habits recorded.</p>
-      ) : (
-        habits.map((habit) => (
-          <div key={habit.id}>
-            <h3>{habit.habit}</h3>
-            <p>Status: {habit.status}</p>
-            <hr />
+        <section className="section-card margin-top-24">
+          <h1>Daily Habits</h1>
+          <div className="card-grid">
+            {habits.length === 0 ? (
+              <p className="empty-state">No habits recorded.</p>
+            ) : (
+              habits.map((habit) => (
+                <article className="mini-card" key={habit.id}>
+                  <h3>{habit.habit}</h3>
+                  <span className="status-pill">{habit.status}</span>
+                </article>
+              ))
+            )}
           </div>
-        ))
-      )}
+        </section>
+      </main>
     </div>
   );
 }

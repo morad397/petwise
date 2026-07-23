@@ -14,22 +14,38 @@ function Recommendations() {
   const recommendations = sampleRecommendations.filter((r) => r.petId === Number(id));
 
   return (
-    <div>
-      <Link to={`/pets/${id}`}>← Back to Pet Profile</Link>
-      <h1>Recommendations</h1>
-      <p>AI-powered suggestions based on your pet's profile and data:</p>
+    <div className="app-shell">
+      <header className="page-topbar">
+        <div className="brand-lockup">
+          <span className="brand-icon">🐾</span>
+          <span className="brand-name">PetPal</span>
+        </div>
+        <nav className="main-nav">
+          <Link to={`/pets/${id}`}>Back to Profile</Link>
+          <Link to="/dashboard">Dashboard</Link>
+        </nav>
+      </header>
 
-      {recommendations.length === 0 ? (
-        <p>No recommendations available yet.</p>
-      ) : (
-        recommendations.map((rec) => (
-          <div key={rec.id}>
-            <h3>{rec.category}</h3>
-            <p>{rec.text}</p>
-            <hr />
+      <main className="page-inner">
+        <section className="section-card">
+          <p className="eyebrow">AI-powered care guidance</p>
+          <h1>Recommendations</h1>
+          <p className="section-copy">Suggestions based on your pet profile and recent activity.</p>
+
+          <div className="card-grid">
+            {recommendations.length === 0 ? (
+              <p className="empty-state">No recommendations available yet.</p>
+            ) : (
+              recommendations.map((rec) => (
+                <article className="mini-card" key={rec.id}>
+                  <h3>{rec.category}</h3>
+                  <p>{rec.text}</p>
+                </article>
+              ))
+            )}
           </div>
-        ))
-      )}
+        </section>
+      </main>
     </div>
   );
 }

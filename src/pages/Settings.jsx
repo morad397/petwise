@@ -2,47 +2,60 @@ import { Link } from 'react-router-dom';
 
 function Settings() {
   return (
-    <div>
-      <Link to="/dashboard">← Back to Dashboard</Link>
-      <h1>Settings</h1>
+    <div className="app-shell">
+      <header className="page-topbar">
+        <div className="brand-lockup">
+          <span className="brand-icon">🐾</span>
+          <span className="brand-name">PetPal</span>
+        </div>
+        <nav className="main-nav">
+          <Link to="/dashboard">Dashboard</Link>
+          <Link to="/">Home</Link>
+        </nav>
+      </header>
 
-      <h3>Profile</h3>
-      <div>
-        <label>Full Name:</label>
-        <br />
-        <input type="text" placeholder="Enter your name" />
-      </div>
-      <br />
-      <div>
-        <label>Email:</label>
-        <br />
-        <input type="email" placeholder="Enter your email" />
-      </div>
-      <br />
+      <main className="page-inner settings-layout">
+        <section className="section-card">
+          <p className="eyebrow">Preferences</p>
+          <h1>Settings</h1>
 
-      <h3>Notifications</h3>
-      <div>
-        <input type="checkbox" /> Feeding reminders
-      </div>
-      <div>
-        <input type="checkbox" /> Vaccination reminders
-      </div>
-      <div>
-        <input type="checkbox" /> Vet visit reminders
-      </div>
-      <br />
+          <div className="settings-grid">
+            <div className="form-card">
+              <h3>Profile</h3>
+              <label className="form-group">
+                <span>Full Name</span>
+                <input type="text" placeholder="Enter your name" />
+              </label>
 
-      <h3>Language</h3>
-      <div>
-        <select>
-          <option value="en">English</option>
-          <option value="he">עברית</option>
-          <option value="ar">العربية</option>
-        </select>
-      </div>
-      <br />
+              <label className="form-group">
+                <span>Email</span>
+                <input type="email" placeholder="Enter your email" />
+              </label>
+            </div>
 
-      <button type="button">Save Settings</button>
+            <div className="form-card">
+              <h3>Notifications</h3>
+              <label className="checkbox-row"><input type="checkbox" /> Feeding reminders</label>
+              <label className="checkbox-row"><input type="checkbox" /> Vaccination reminders</label>
+              <label className="checkbox-row"><input type="checkbox" /> Vet visit reminders</label>
+            </div>
+
+            <div className="form-card">
+              <h3>Language</h3>
+              <label className="form-group">
+                <span>Preferred language</span>
+                <select>
+                  <option value="en">English</option>
+                  <option value="he">עברית</option>
+                  <option value="ar">العربية</option>
+                </select>
+              </label>
+            </div>
+          </div>
+
+          <Link to="/dashboard" className="btn btn-primary">Save Settings</Link>
+        </section>
+      </main>
     </div>
   );
 }
