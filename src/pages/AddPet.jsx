@@ -20,9 +20,11 @@ function AddPet() {
   function handleSubmit(event) {
     event.preventDefault();
 
+    const savedUser = JSON.parse(localStorage.getItem('petwise-user') || '{}');
     const savedPets = JSON.parse(localStorage.getItem('petwise-pets') || '[]');
     const newPet = {
       id: Date.now(),
+      ownerEmail: savedUser.email || '',
       name: form.name,
       species: form.species,
       breed: form.breed,

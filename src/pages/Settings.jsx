@@ -1,6 +1,50 @@
-import { Link } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 
 function Settings() {
+  const navigate = useNavigate();
+  const [form, setForm] = useState({
+    fullName: '',
+    email: '',
+    role: '',
+  });
+
+  useEffect(() => {
+    const savedUser = JSON.parse(localStorage.getItem('petwise-user') || '{}');
+    setForm({
+      fullName: savedUser.fullName || '',
+      email: savedUser.email || '',
+      role: savedUser.role || '',
+    });
+  }, []);
+
+  function handleChange(event) {
+    const { name, value } = event.target;
+    setForm((current) => ({ ...current, [name]: value }));
+  }
+
+  function handleSubmit(event) {
+    event.preventDefault();
+
+    const previousUser = JSON.parse(localStorage.getItem('petwise-user') || '{}');
+    const savedPets = JSON.parse(localStorage.getItem('petwise-pets') || '[]');
+
+    if (previousUser.email && previousUser.email !== form.email) {
+      const updatedPets = savedPets.map((pet) => {
+        if (pet.ownerEmail === previousUser.email) {
+          return { ...pet, ownerEmail: form.email };
+        }
+
+        return pet;
+      });
+
+      localStorage.setItem('petwise-pets', JSON.stringify(updatedPets));
+    }
+
+    localStorage.setItem('petwise-user', JSON.stringify(form));
+    navigate('/dashboard');
+  }
+
   return (
     <div className="app-shell">
       <header className="page-topbar">
@@ -19,17 +63,26 @@ function Settings() {
           <p className="eyebrow">Preferences</p>
           <h1>Settings</h1>
 
-          <div className="settings-grid">
+          <form className="settings-grid" onSubmit={handleSubmit}>
             <div className="form-card">
               <h3>Profile</h3>
               <label className="form-group">
                 <span>Full Name</span>
-                <input type="text" placeholder="Enter your name" />
+                <input type="text" name="fullName" value={form.fullName} onChange={handleChange} placeholder="Enter your name" />
               </label>
 
               <label className="form-group">
                 <span>Email</span>
-                <input type="email" placeholder="Enter your email" />
+                <input type="email" name="email" value={form.email} onChange={handleChange} placeholder="Enter your email" />
+              </label>
+
+              <label className="form-group">
+                <span>Role</span>
+                <select name="role" value={form.role} onChange={handleChange}>
+                  <option value="">Select role</option>
+                  <option value="owner">Pet Owner</option>
+                  <option value="admin">Admin</option>
+                </select>
               </label>
             </div>
 
@@ -51,9 +104,9 @@ function Settings() {
                 </select>
               </label>
             </div>
-          </div>
 
-          <Link to="/dashboard" className="btn btn-primary">Save Settings</Link>
+            <button type="submit" className="btn btn-primary">Save Settings</button>
+          </form>
         </section>
       </main>
     </div>

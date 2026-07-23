@@ -8,8 +8,17 @@ function Dashboard() {
   useEffect(() => {
     const savedPets = JSON.parse(localStorage.getItem('petwise-pets') || '[]');
     const savedUser = JSON.parse(localStorage.getItem('petwise-user') || '{}');
+    const currentUserEmail = savedUser.email || '';
 
-    setPets(savedPets);
+    const userPets = savedPets.filter((pet) => {
+      if (!pet.ownerEmail) {
+        return true;
+      }
+
+      return pet.ownerEmail === currentUserEmail;
+    });
+
+    setPets(userPets);
     setUserName(savedUser.fullName || 'Pet Owner');
   }, []);
 
@@ -23,34 +32,61 @@ function Dashboard() {
 
         <nav className="main-nav">
           <Link to="/dashboard">Dashboard</Link>
+          <Link to="/appointments">Appointments</Link>
+          <Link to="/reminders">Reminders</Link>
+          <Link to="/shop">Shop</Link>
+          <Link to="/community">Community</Link>
+          <Link to="/ai-vet">AI Vet</Link>
+          <Link to="/sos">SOS</Link>
           <Link to="/settings">Settings</Link>
           <Link to="/">Logout</Link>
         </nav>
       </header>
 
       <main className="page-inner dashboard-layout">
-        <section className="section-card hero-panel">
+        <section className="section-card hero-panel dashboard-hero">
           <div>
             <p className="eyebrow">Your pet family</p>
             <h1>Welcome back, {userName}</h1>
-            <p>Keep every pet healthy, scheduled, and cared for from one elegant home dashboard.</p>
+            <p>Track appointments, reminders, health notes, and emergency support from one polished home dashboard.</p>
           </div>
-          <Link to="/add-pet" className="btn btn-primary">+ Add New Pet</Link>
+          <div className="hero-actions">
+            <Link to="/add-pet" className="btn btn-primary">+ Add New Pet</Link>
+            <Link to="/appointments" className="btn btn-secondary">View Calendar</Link>
+          </div>
         </section>
 
-        <section className="metrics-grid">
-          <div className="metric-card">
-            <strong>{pets.length}</strong>
-            <span>Active pets</span>
-          </div>
-          <div className="metric-card">
-            <strong>{Math.max(1, pets.length * 3)}</strong>
-            <span>Upcoming reminders</span>
-          </div>
-          <div className="metric-card">
-            <strong>96%</strong>
-            <span>Care completion</span>
-          </div>
+        <section className="module-grid">
+          <Link to="/appointments" className="module-card">
+            <span className="module-icon">🗓️</span>
+            <strong>Appointments</strong>
+            <small>Schedule visits and wellness checkups</small>
+          </Link>
+          <Link to="/reminders" className="module-card">
+            <span className="module-icon">⏰</span>
+            <strong>Reminders</strong>
+            <small>Never miss meals, meds, or walks</small>
+          </Link>
+          <Link to="/shop" className="module-card">
+            <span className="module-icon">🛍️</span>
+            <strong>Shop</strong>
+            <small>Find trusted care essentials</small>
+          </Link>
+          <Link to="/community" className="module-card">
+            <span className="module-icon">💬</span>
+            <strong>Community</strong>
+            <small>Join owner discussions and care tips</small>
+          </Link>
+          <Link to="/ai-vet" className="module-card">
+            <span className="module-icon">🤖</span>
+            <strong>AI Vet</strong>
+            <small>Quick guidance for health questions</small>
+          </Link>
+          <Link to="/sos" className="module-card">
+            <span className="module-icon">🚨</span>
+            <strong>SOS</strong>
+            <small>Quick emergency support access</small>
+          </Link>
         </section>
 
         {pets.length === 0 ? (

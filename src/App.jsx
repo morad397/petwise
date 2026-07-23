@@ -11,6 +11,12 @@ import Recommendations from './pages/Recommendations';
 import Settings from './pages/Settings';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
+import Appointments from './pages/Appointments';
+import Sos from './pages/Sos';
+import Shop from './pages/Shop';
+import Reminders from './pages/Reminders';
+import Community from './pages/Community';
+import AiVet from './pages/AiVet';
 
 function App() {
   return (
@@ -27,6 +33,12 @@ function App() {
       <Route path="/pets/:id/recommendations" element={<Recommendations />} />
       <Route path="/settings" element={<Settings />} />
       <Route path="/signup" element={<Signup />} />
+      <Route path="/appointments" element={<Appointments />} />
+      <Route path="/sos" element={<Sos />} />
+      <Route path="/shop" element={<Shop />} />
+      <Route path="/reminders" element={<Reminders />} />
+      <Route path="/community" element={<Community />} />
+      <Route path="/ai-vet" element={<AiVet />} />
     </Routes>
   );
 }

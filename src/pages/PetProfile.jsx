@@ -15,7 +15,17 @@ function PetProfile() {
 
   useEffect(() => {
     const savedPets = JSON.parse(localStorage.getItem('petwise-pets') || '[]');
-    const matchedPet = savedPets.find((p) => p.id === Number(id));
+    const savedUser = JSON.parse(localStorage.getItem('petwise-user') || '{}');
+    const currentUserEmail = savedUser.email || '';
+
+    const matchedPet = savedPets.find((p) => {
+      if (!p.ownerEmail) {
+        return p.id === Number(id);
+      }
+
+      return p.ownerEmail === currentUserEmail && p.id === Number(id);
+    });
+
     setPet(matchedPet || null);
   }, [id]);
 
