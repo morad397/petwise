@@ -1051,3 +1051,422 @@ img {
     grid-template-columns: 1fr;
   }
 }
+
+/* Dashboard (Figma-matched layout) */
+.dash-greeting-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-bottom: 22px;
+}
+
+.dash-greeting {
+  font-size: 1.7rem;
+  color: #0d1b2a;
+}
+
+.dash-subgreeting {
+  color: #5b6c83;
+  margin-top: 4px;
+}
+
+.dash-weather-pill {
+  background: #eafaf4;
+  color: #0f7f5c;
+  font-weight: 700;
+  font-size: 0.88rem;
+  padding: 10px 16px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.dash-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+.dash-col-main,
+.dash-col-side {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.dash-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.dash-card-header h3 {
+  font-size: 1rem;
+  color: #0d1b2a;
+}
+
+.dash-muted {
+  color: #8493a8;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.dash-link {
+  color: #11b8a9;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+/* Pet health card */
+.dash-pet-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.dash-pet-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.dash-pet-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.dash-pet-name-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.dash-pet-name-row h3 {
+  font-size: 1.1rem;
+}
+
+.dash-pet-sub {
+  color: #5b6c83;
+  font-size: 0.88rem;
+  margin-top: 2px;
+}
+
+.dash-pet-stats {
+  display: flex;
+  gap: 26px;
+  margin-top: 14px;
+}
+
+.dash-pet-stats div {
+  display: flex;
+  flex-direction: column;
+}
+
+.dash-pet-stats strong {
+  font-size: 0.95rem;
+  color: #0d1b2a;
+}
+
+.dash-pet-stats span {
+  font-size: 0.75rem;
+  color: #8493a8;
+}
+
+.dash-health-ring {
+  --pct: 87%;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: conic-gradient(#11b8a9 var(--pct), #ecf1f6 0);
+  position: relative;
+}
+
+.dash-health-ring::before {
+  content: '';
+  position: absolute;
+  inset: 6px;
+  border-radius: 50%;
+  background: white;
+}
+
+.dash-health-ring span,
+.dash-health-ring small {
+  position: relative;
+  z-index: 1;
+}
+
+.dash-health-ring span {
+  font-weight: 800;
+  font-size: 1rem;
+  color: #0d1b2a;
+}
+
+.dash-health-ring small {
+  font-size: 0.62rem;
+  color: #8493a8;
+}
+
+/* Checklist */
+.dash-progress-track {
+  height: 8px;
+  border-radius: 999px;
+  background: #eef1f6;
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+
+.dash-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #11b8a9 0%, #1f9ee0 100%);
+  transition: width 0.2s ease;
+}
+
+.dash-checklist {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dash-checklist li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.92rem;
+  color: #29405c;
+}
+
+.dash-checklist li.is-done {
+  color: #b2bccb;
+  text-decoration: line-through;
+}
+
+.dash-checkbox {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid #d7dfea;
+  background: white;
+  flex-shrink: 0;
+  cursor: pointer;
+  padding: 0;
+}
+
+.dash-checklist li.is-done .dash-checkbox {
+  border-color: #ff8fa3;
+  background: #ff8fa3;
+}
+
+/* Recent activity */
+.dash-activity-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.dash-activity-list li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.dash-activity-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: #eef6ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 0.95rem;
+}
+
+.dash-activity-list p {
+  font-size: 0.88rem;
+  color: #29405c;
+  font-weight: 600;
+}
+
+.dash-activity-list small {
+  color: #8493a8;
+  font-size: 0.76rem;
+}
+
+/* Quick actions */
+.dash-quick-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.dash-quick-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 18px 10px;
+  border-radius: 16px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: #29405c;
+}
+
+.dash-quick-btn span {
+  font-size: 1.3rem;
+}
+
+.dash-quick-pink {
+  background: #fdeef1;
+}
+
+.dash-quick-purple {
+  background: #f1edfc;
+}
+
+.dash-quick-green {
+  background: #e9f9f0;
+}
+
+.dash-quick-blue {
+  background: #eaf3ff;
+}
+
+/* Upcoming */
+.dash-upcoming-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.dash-upcoming-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.dash-upcoming-list p {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #0d1b2a;
+}
+
+.dash-upcoming-list small {
+  color: #8493a8;
+  font-size: 0.76rem;
+}
+
+.dash-status-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.dash-status-confirmed {
+  background: #e6f4ff;
+  color: #1f7fd6;
+}
+
+.dash-status-pending {
+  background: #fff3da;
+  color: #b9861f;
+}
+
+.dash-add-btn {
+  display: block;
+  text-align: center;
+  padding: 10px;
+  border-radius: 12px;
+  border: 1px dashed #c7d3e2;
+  color: #5b6c83;
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+/* Due reminders */
+.dash-due-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.dash-due-list li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.dash-due-list p {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #29405c;
+}
+
+.dash-days-left {
+  margin-left: auto;
+  font-weight: 700;
+  font-size: 0.8rem;
+  color: #e2554c;
+}
+
+/* AI picks */
+.dash-picks-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.dash-picks-list li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.dash-picks-list img {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.dash-picks-list p {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #29405c;
+}
+
+.dash-picks-list small {
+  color: #8493a8;
+  font-size: 0.78rem;
+}
+
+.dash-cart-btn {
+  margin-left: auto;
+  font-size: 1rem;
+}
+
+@media (max-width: 900px) {
+  .dash-grid {
+    grid-template-columns: 1fr;
+  }
+}
