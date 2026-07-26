@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Stethoscope, CheckCircle, ArrowRight, ArrowLeft } from 'lucide-react';
+import TopBar from '../components/TopBar';
 
 const initialAppointments = [
   {
@@ -70,22 +71,7 @@ function Appointments() {
 
   return (
     <div className="app-shell">
-      <header className="page-topbar">
-        <div className="brand-lockup">
-          <span className="brand-icon">🐾</span>
-          <span className="brand-name">Petwise</span>
-        </div>
-        <nav className="main-nav">
-          <Link to="/dashboard">Dashboard</Link>
-          <Link to="/appointments">Appointments</Link>
-          <Link to="/reminders">Reminders</Link>
-          <Link to="/shop">Shop</Link>
-          <Link to="/community">Community</Link>
-          <Link to="/ai-vet">AI Vet</Link>
-          <Link to="/sos">SOS</Link>
-          <Link to="/settings">Settings</Link>
-        </nav>
-      </header>
+      <TopBar />
 
       <main className="page-inner dashboard-layout">
         {!isBooking ? (

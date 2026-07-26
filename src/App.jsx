@@ -17,6 +17,7 @@ import Shop from './pages/Shop';
 import Reminders from './pages/Reminders';
 import Community from './pages/Community';
 import AiVet from './pages/AiVet';
+import MyPets from './pages/MyPets';
 
 function App() {
   return (
@@ -24,6 +25,7 @@ function App() {
       <Route path="/" element={<Homepage />} />
       <Route path="/login" element={<Login />} />
       <Route path="/dashboard" element={<Dashboard />} />
+      <Route path="/pets" element={<MyPets />} />
       <Route path="/pets/:id" element={<PetProfile />} />
       <Route path="/add-pet" element={<AddPet />} />
       <Route path="/pets/:id/feeding" element={<FeedingSchedule />} />

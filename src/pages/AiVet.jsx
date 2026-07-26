@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import TopBar from '../components/TopBar';
 
 const aiTips = [
   'Symptoms triage for fever, vomiting, or sudden weakness',
@@ -10,22 +11,7 @@ const aiTips = [
 function AiVet() {
   return (
     <div className="app-shell">
-      <header className="page-topbar">
-        <div className="brand-lockup">
-          <span className="brand-icon">🐾</span>
-          <span className="brand-name">Petwise</span>
-        </div>
-        <nav className="main-nav">
-          <Link to="/dashboard">Dashboard</Link>
-          <Link to="/appointments">Appointments</Link>
-          <Link to="/reminders">Reminders</Link>
-          <Link to="/shop">Shop</Link>
-          <Link to="/community">Community</Link>
-          <Link to="/ai-vet">AI Vet</Link>
-          <Link to="/sos">SOS</Link>
-          <Link to="/settings">Settings</Link>
-        </nav>
-      </header>
+      <TopBar />
 
       <main className="page-inner dashboard-layout">
         <section className="section-card hero-panel dashboard-hero">

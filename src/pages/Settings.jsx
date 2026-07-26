@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import TopBar from '../components/TopBar';
 
 function Settings() {
   const navigate = useNavigate();
@@ -47,16 +48,7 @@ function Settings() {
 
   return (
     <div className="app-shell">
-      <header className="page-topbar">
-        <div className="brand-lockup">
-          <span className="brand-icon">🐾</span>
-          <span className="brand-name">Petwise</span>
-        </div>
-        <nav className="main-nav">
-          <Link to="/dashboard">Dashboard</Link>
-          <Link to="/">Home</Link>
-        </nav>
-      </header>
+      <TopBar />
 
       <main className="page-inner settings-layout">
         <section className="section-card">

@@ -1,4 +1,5 @@
 import { useParams, Link } from 'react-router-dom';
+import TopBar from '../components/TopBar';
 
 const sampleVaccinations = [
   { id: 1, petId: 1, name: 'Rabies', date: '2026-01-15', nextDue: '2027-01-15', status: 'Done' },
@@ -21,16 +22,7 @@ function Vaccinations() {
 
   return (
     <div className="app-shell">
-      <header className="page-topbar">
-        <div className="brand-lockup">
-          <span className="brand-icon">🐾</span>
-          <span className="brand-name">Petwise</span>
-        </div>
-        <nav className="main-nav">
-          <Link to={`/pets/${id}`}>Back to Profile</Link>
-          <Link to="/dashboard">Dashboard</Link>
-        </nav>
-      </header>
+      <TopBar />
 
       <main className="page-inner">
         <section className="section-card">

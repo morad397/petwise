@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import TopBar from '../components/TopBar';
 
 const quickLinks = [
   { label: 'Feeding Schedule', path: 'feeding' },
@@ -35,17 +36,7 @@ function PetProfile() {
 
   return (
     <div className="app-shell">
-      <header className="page-topbar">
-        <div className="brand-lockup">
-          <span className="brand-icon">🐾</span>
-          <span className="brand-name">Petwise</span>
-        </div>
-
-        <nav className="main-nav">
-          <Link to="/dashboard">Dashboard</Link>
-          <Link to="/settings">Settings</Link>
-        </nav>
-      </header>
+      <TopBar />
 
       <main className="page-inner profile-layout">
         <section className="section-card profile-header-card">

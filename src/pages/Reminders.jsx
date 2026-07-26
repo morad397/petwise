@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import TopBar from '../components/TopBar';
 
 const reminders = [
   { title: 'Feeding reminder', detail: 'Dinner in 30 minutes', time: 'Today • 6:30 PM' },
@@ -9,20 +10,7 @@ const reminders = [
 function Reminders() {
   return (
     <div className="app-shell">
-      <header className="page-topbar">
-        <div className="brand-lockup">
-          <span className="brand-icon">🐾</span>
-          <span className="brand-name">Petwise</span>
-        </div>
-        <nav className="main-nav">
-          <Link to="/dashboard">Dashboard</Link>
-          <Link to="/appointments">Appointments</Link>
-          <Link to="/reminders">Reminders</Link>
-          <Link to="/shop">Shop</Link>
-          <Link to="/sos">SOS</Link>
-          <Link to="/settings">Settings</Link>
-        </nav>
-      </header>
+      <TopBar />
 
       <main className="page-inner dashboard-layout">
         <section className="section-card hero-panel dashboard-hero">

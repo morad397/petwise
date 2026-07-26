@@ -1,10 +1,11 @@
 import { Link } from 'react-router-dom';
 import shopShampoo from '../assets/shop-shampoo.png';
-import bannerShop from '../assets/banner-shop.png';
+
 import shopToy from '../assets/shop-toy.png';
 import shopFood from '../assets/shop-food.png';
 import shopClothes from '../assets/shop-clothes.png';
 import shopBed from '../assets/shop-bed.png';
+import TopBar from '../components/TopBar';
 
 const products = [
   {
@@ -68,22 +69,7 @@ const products = [
 function Shop() {
   return (
     <div className="app-shell">
-      <header className="page-topbar">
-        <div className="brand-lockup">
-          <span className="brand-icon">🐾</span>
-          <span className="brand-name">Petwise</span>
-        </div>
-        <nav className="main-nav">
-          <Link to="/dashboard">Dashboard</Link>
-          <Link to="/appointments">Appointments</Link>
-          <Link to="/reminders">Reminders</Link>
-          <Link to="/shop">Shop</Link>
-          <Link to="/community">Community</Link>
-          <Link to="/ai-vet">AI Vet</Link>
-          <Link to="/sos">SOS</Link>
-          <Link to="/settings">Settings</Link>
-        </nav>
-      </header>
+      <TopBar />
 
       <main className="page-inner dashboard-layout">
         <section className="section-card hero-panel dashboard-hero">

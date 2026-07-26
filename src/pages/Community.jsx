@@ -1,56 +1,47 @@
 import { Link } from 'react-router-dom';
+import TopBar from '../components/TopBar';
 
 const posts = [
   {
-    title: 'How do you keep a dog calm during thunderstorms?',
-    author: 'Maya R.',
-    detail: 'Shared tips on breathing routines, comfort blankets, and safe indoor play.',
+    title: 'Petwise has completely changed how I care for Luna!',
+    author: 'Sarah Jenkins',
+    detail: 'I used to forget vet appointments and lose track of vaccinations. Having everything in one beautiful dashboard gives me so much peace of mind.',
   },
   {
-    title: 'Best litter box habits for a new cat parent',
-    author: 'Liam T.',
-    detail: 'A practical checklist for setup, cleaning, and daily routines.',
+    title: 'The AI Vet feature is a lifesaver',
+    author: 'Mark Davis',
+    detail: 'When my cat started acting strange at 2 AM, the AI Vet gave me immediate advice on what to check for and whether it was an emergency. Absolutely brilliant!',
   },
   {
-    title: 'What foods should I avoid for a senior pet?',
-    author: 'Noor S.',
-    detail: 'Pro advice from experienced owners on nutrition and pet care transitions.',
+    title: 'Best pet management app out there',
+    author: 'Emily R.',
+    detail: 'The dark mode is stunning, the shop has amazing curated items, and the whole app is just so easy to use. I recommend Petwise to every pet owner I know.',
   },
+  {
+    title: 'Finally, an app that looks good and works perfectly',
+    author: 'James T.',
+    detail: 'Most pet apps look like they were built in 2010. Petwise feels premium, runs incredibly fast, and actually helps me keep my dogs healthier.',
+  }
 ];
 
 function Community() {
   return (
     <div className="app-shell">
-      <header className="page-topbar">
-        <div className="brand-lockup">
-          <span className="brand-icon">🐾</span>
-          <span className="brand-name">Petwise</span>
-        </div>
-        <nav className="main-nav">
-          <Link to="/dashboard">Dashboard</Link>
-          <Link to="/appointments">Appointments</Link>
-          <Link to="/reminders">Reminders</Link>
-          <Link to="/shop">Shop</Link>
-          <Link to="/community">Community</Link>
-          <Link to="/ai-vet">AI Vet</Link>
-          <Link to="/sos">SOS</Link>
-          <Link to="/settings">Settings</Link>
-        </nav>
-      </header>
+      <TopBar />
 
       <main className="page-inner dashboard-layout">
         <section className="section-card hero-panel dashboard-hero">
           <div>
             <p className="eyebrow">Community</p>
-            <h1>Pet care conversations</h1>
-            <p>Connect with other pet owners, ask for advice, and share your best everyday pet-care wins.</p>
+            <h1>What people are saying</h1>
+            <p>Read testimonials and feedback from pet owners who use Petwise every day to care for their furry family members.</p>
           </div>
         </section>
 
         <section className="community-grid">
           {posts.map((post) => (
             <article key={post.title} className="mini-card appointment-card">
-              <span className="eyebrow">Community post</span>
+              <span className="eyebrow">App Review</span>
               <h3>{post.title}</h3>
               <p>{post.detail}</p>
               <strong>{post.author}</strong>
