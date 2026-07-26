@@ -7,6 +7,8 @@ import shopClothes from '../assets/shop-clothes.png';
 import shopBed from '../assets/shop-bed.png';
 import TopBar from '../components/TopBar';
 
+import { useCart } from '../contexts/CartContext';
+
 const products = [
   {
     name: 'Premium Pet Shampoo',
@@ -67,6 +69,8 @@ const products = [
 ];
 
 function Shop() {
+  const { addToCart } = useCart();
+
   return (
     <div className="app-shell">
       <TopBar />
@@ -90,7 +94,7 @@ function Shop() {
                 <p>{product.detail}</p>
                 <div className="shop-card-footer">
                   <strong>{product.price}</strong>
-                  <button className="btn btn-secondary">Add to cart</button>
+                  <button className="btn btn-secondary" onClick={() => addToCart(product)}>Add to cart</button>
                 </div>
               </div>
             </article>
