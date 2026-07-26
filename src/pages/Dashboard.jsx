@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import heroImage from '../assets/hero.png';
+import bannerDash from '../assets/banner-dash.png';
 
 const DEFAULT_CHECKLIST = [
   { id: 'walk', label: 'Morning walk (30 min)', done: true },
@@ -72,7 +73,7 @@ function Dashboard() {
       <header className="page-topbar">
         <div className="brand-lockup">
           <span className="brand-icon">🐾</span>
-          <span className="brand-name">PetPal</span>
+          <span className="brand-name">Petwise</span>
         </div>
 
         <nav className="main-nav">

@@ -1,19 +1,46 @@
 import { Link } from 'react-router-dom';
+import shopShampoo from '../assets/shop-shampoo.png';
+import bannerShop from '../assets/banner-shop.png';
+import shopToy from '../assets/shop-toy.png';
+import shopFood from '../assets/shop-food.png';
+import shopClothes from '../assets/shop-clothes.png';
+import shopBed from '../assets/shop-bed.png';
 
 const products = [
   {
-    name: 'Premium Cat Food',
+    name: 'Premium Pet Shampoo',
     price: '$18',
-    type: 'Cat',
-    detail: 'Protein-rich, grain-free cat food.',
-    image: 'https://images.unsplash.com/photo-1605001011156-c2bf2f1f2db5?auto=format&fit=crop&w=900&q=80',
+    type: 'Dog & Cat',
+    detail: 'Gentle, soothing wash for a shiny, healthy coat.',
+    image: shopShampoo,
   },
   {
-    name: 'Cat Toys Bundle',
-    price: '$14',
-    type: 'Cat',
-    detail: 'Soft toys for play and scratching.',
-    image: 'https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&w=900&q=80',
+    name: 'Interactive Rubber Ball',
+    price: '$12',
+    type: 'Dog',
+    detail: 'Durable, bouncy toy perfect for fetch and playtime.',
+    image: shopToy,
+  },
+  {
+    name: 'Healthy Dry Pet Food',
+    price: '$45',
+    type: 'Dog & Cat',
+    detail: 'Nutrient-rich, balanced meal for optimal health.',
+    image: shopFood,
+  },
+  {
+    name: 'Cozy Knitted Sweater',
+    price: '$24',
+    type: 'Small Pets',
+    detail: 'Keep your pet warm and stylish in cold weather.',
+    image: shopClothes,
+  },
+  {
+    name: 'Luxurious Plush Pet Bed',
+    price: '$65',
+    type: 'Dog & Cat',
+    detail: 'Ultra-soft, comfortable bed for perfect sleep.',
+    image: shopBed,
   },
   {
     name: 'Cat Litter Tray',
@@ -21,20 +48,6 @@ const products = [
     type: 'Cat',
     detail: 'Easy-clean enclosure for daily care.',
     image: 'https://images.unsplash.com/photo-1615461066841-211d7a4166b5?auto=format&fit=crop&w=900&q=80',
-  },
-  {
-    name: 'Cat Shampoo',
-    price: '$16',
-    type: 'Cat',
-    detail: 'Gentle grooming wash for sensitive skin.',
-    image: 'https://images.unsplash.com/photo-1572635196237-14b3f281503f?auto=format&fit=crop&w=900&q=80',
-  },
-  {
-    name: 'Dog Food Pack',
-    price: '$24',
-    type: 'Dog',
-    detail: 'Balanced meal pack for daily nutrition.',
-    image: 'https://images.unsplash.com/photo-1587300003388-59208cc962cb?auto=format&fit=crop&w=900&q=80',
   },
   {
     name: 'Dog Leash & Collar',
@@ -49,14 +62,7 @@ const products = [
     type: 'Dog',
     detail: 'Cleaning essentials for grooming and hygiene.',
     image: 'https://images.unsplash.com/photo-1601758228041-f3b2795255f1?auto=format&fit=crop&w=900&q=80',
-  },
-  {
-    name: 'Dog Cage Travel Kit',
-    price: '$35',
-    type: 'Dog',
-    detail: 'Portable carrier and comfort accessories.',
-    image: 'https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?auto=format&fit=crop&w=900&q=80',
-  },
+  }
 ];
 
 function Shop() {
@@ -65,7 +71,7 @@ function Shop() {
       <header className="page-topbar">
         <div className="brand-lockup">
           <span className="brand-icon">🐾</span>
-          <span className="brand-name">PetPal</span>
+          <span className="brand-name">Petwise</span>
         </div>
         <nav className="main-nav">
           <Link to="/dashboard">Dashboard</Link>

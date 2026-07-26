@@ -31,7 +31,7 @@ function Signup() {
         <div className="auth-visual">
           <div className="brand-lockup brand-lockup-large">
             <span className="brand-icon">🐾</span>
-            <span className="brand-name">PetPal</span>
+            <span className="brand-name">Petwise</span>
           </div>
           <h1>Join the future of pet care.</h1>
           <p>Build a complete health profile for every furry family member and get AI-powered support instantly.</p>
@@ -44,7 +44,7 @@ function Signup() {
 
         <div className="auth-form-area">
           <p className="eyebrow">Create your account</p>
-          <h2>Start your free PetPal journey</h2>
+          <h2>Start your free Petwise journey</h2>
 
           <form className="form-card" onSubmit={handleSubmit}>
             <label className="form-group">

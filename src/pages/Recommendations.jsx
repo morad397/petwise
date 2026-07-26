@@ -18,7 +18,7 @@ function Recommendations() {
       <header className="page-topbar">
         <div className="brand-lockup">
           <span className="brand-icon">🐾</span>
-          <span className="brand-name">PetPal</span>
+          <span className="brand-name">Petwise</span>
         </div>
         <nav className="main-nav">
           <Link to={`/pets/${id}`}>Back to Profile</Link>

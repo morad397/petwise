@@ -46,7 +46,7 @@ function Login() {
         <div className="auth-visual">
           <div className="brand-lockup brand-lockup-large">
             <span className="brand-icon">🐾</span>
-            <span className="brand-name">PetPal</span>
+            <span className="brand-name">Petwise</span>
           </div>
           <h1>Care for every wag, whisker, and paw.</h1>
           <p>Track your pet’s health, schedule appointments, and connect with your AI vet in one beautiful app.</p>
@@ -59,7 +59,7 @@ function Login() {
 
         <div className="auth-form-area">
           <p className="eyebrow">Welcome back</p>
-          <h2>Sign in to PetPal</h2>
+          <h2>Sign in to Petwise</h2>
 
           <form className="form-card" onSubmit={handleSubmit}>
             <label className="form-group">

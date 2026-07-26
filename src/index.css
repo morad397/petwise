@@ -6,9 +6,13 @@
 
 body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background: linear-gradient(180deg, #f8fbff 0%, #f4f7fb 100%);
+  background-image: linear-gradient(rgba(255,255,255,0.65), rgba(255,255,255,0.85)), url('./assets/banner-dash.png');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
   color: #152238;
   line-height: 1.6;
+  min-height: 100vh;
 }
 
 a {
@@ -41,8 +45,8 @@ img {
   align-items: center;
   gap: 18px;
   padding: 15px 18px;
-  background: rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(6px);
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(12px);
   border: 1px solid rgba(18, 38, 63, 0.08);
   border-radius: 22px;
   box-shadow: 0 12px 32px rgba(18, 38, 63, 0.08);
@@ -76,7 +80,7 @@ img {
 }
 
 .main-nav a:hover {
-  color: #11b8a9;
+  color: #ff5a79;
 }
 
 .nav-actions {
@@ -101,7 +105,7 @@ img {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #11b8a9 0%, #1f9ee0 100%);
+  background: linear-gradient(135deg, #ff5a79 0%, #ff3b5c 100%);
   color: white;
   box-shadow: 0 10px 20px rgba(28, 165, 201, 0.25);
 }
@@ -167,8 +171,8 @@ img {
   align-items: center;
   gap: 9px;
   padding: 8px 14px;
-  background: #ebf9f7;
-  color: #0f7f70;
+  background: #fff0f2;
+  color: #d43a57;
   border-radius: 999px;
   font-weight: 700;
 }
@@ -252,7 +256,7 @@ img {
   display: grid;
   place-items: center;
   border-radius: 18px;
-  background: #11b8a9;
+  background: #ff5a79;
   color: white;
   font-weight: 800;
 }
@@ -418,7 +422,7 @@ img {
 .feature-link {
   display: inline-block;
   margin-top: 14px;
-  color: #0f7f70;
+  color: #d43a57;
   font-weight: 800;
 }
 
@@ -448,7 +452,7 @@ img {
   position: absolute;
   left: 0;
   top: 0;
-  color: #0f7f70;
+  color: #d43a57;
 }
 
 .chat-card {
@@ -515,7 +519,7 @@ img {
   width: 34px;
   height: 34px;
   border-radius: 10px;
-  background: #11b8a9;
+  background: #ff5a79;
   color: white;
   font-weight: 800;
 }
@@ -646,7 +650,7 @@ img {
   letter-spacing: 0.06em;
   font-size: 0.78rem;
   font-weight: 800;
-  color: #11b8a9;
+  color: #ff5a79;
 }
 
 .metrics-grid,
@@ -818,8 +822,8 @@ img {
   justify-content: center;
   padding: 6px 10px;
   border-radius: 999px;
-  background: #ebf9f7;
-  color: #0f7f70;
+  background: #fff0f2;
+  color: #d43a57;
   font-size: 0.8rem;
   font-weight: 800;
 }
@@ -885,7 +889,7 @@ img {
 
 .event-time {
   font-weight: 800;
-  color: #11b8a9;
+  color: #ff5a79;
 }
 
 .auth-shell {
@@ -960,7 +964,7 @@ img {
 }
 
 .auth-link-row a {
-  color: #11b8a9;
+  color: #ff5a79;
   font-weight: 800;
 }
 
@@ -1115,7 +1119,7 @@ img {
 }
 
 .dash-link {
-  color: #11b8a9;
+  color: #ff5a79;
   font-size: 0.85rem;
   font-weight: 700;
 }
@@ -1187,7 +1191,7 @@ img {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: conic-gradient(#11b8a9 var(--pct), #ecf1f6 0);
+  background: conic-gradient(#ff5a79 var(--pct), #ecf1f6 0);
   position: relative;
 }
 
@@ -1228,7 +1232,7 @@ img {
 .dash-progress-fill {
   height: 100%;
   border-radius: 999px;
-  background: linear-gradient(90deg, #11b8a9 0%, #1f9ee0 100%);
+  background: linear-gradient(90deg, #ff5a79 0%, #ff3b5c 100%);
   transition: width 0.2s ease;
 }
 
