@@ -190,14 +190,7 @@ export default function TopBar() {
         </button>
         
         <div style={{ position: 'relative' }}>
-          {isAdmin ? (
-            <div className="user-pill" style={{cursor: 'default'}}>
-              <div style={{width: '32px', height: '32px', borderRadius: '50%', background: '#ff5a79', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '14px'}}>
-                {userName.charAt(0).toUpperCase()}
-              </div>
-              <span className="user-name">{userName} (Admin)</span>
-            </div>
-          ) : (
+          {!isAdmin && (
             <>
               <div className="user-pill" onClick={() => setIsPetMenuOpen(!isPetMenuOpen)}>
                 <img src={petImage} alt={petName} className="user-avatar" />
