@@ -1,5 +1,6 @@
 import { Routes, Route } from 'react-router-dom';
 import Homepage from './pages/Homepage';
+import AdminDashboard from './pages/AdminDashboard';
 import Dashboard from './pages/Dashboard';
 import PetProfile from './pages/PetProfile';
 import AddPet from './pages/AddPet';
@@ -25,6 +26,10 @@ function App() {
       <Route path="/" element={<Homepage />} />
       <Route path="/login" element={<Login />} />
       <Route path="/dashboard" element={<Dashboard />} />
+      <Route path="/admin" element={<AdminDashboard />} />
+      <Route path="/admin/users" element={<AdminDashboard />} />
+      <Route path="/admin/inventory" element={<AdminDashboard />} />
+      <Route path="/admin/system" element={<AdminDashboard />} />
       <Route path="/pets" element={<MyPets />} />
       <Route path="/pets/:id" element={<PetProfile />} />
       <Route path="/add-pet" element={<AddPet />} />

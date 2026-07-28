@@ -25,8 +25,28 @@ function Login() {
     setForm((current) => ({ ...current, [name]: value }));
   }
 
+  const [errors, setErrors] = useState({});
+
   function handleSubmit(event) {
     event.preventDefault();
+    
+    let newErrors = {};
+    if (!form.email && !form.password) {
+      newErrors.general = 'something wrong try again';
+      newErrors.email = 'email not right';
+      newErrors.password = 'password is not right';
+    } else if (!form.email) {
+      newErrors.email = 'email not right';
+    } else if (!form.password) {
+      newErrors.password = 'password is not right';
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+    setErrors({});
+
     const savedUser = JSON.parse(localStorage.getItem('petwise-user') || '{}');
 
     const nextUser = {
@@ -37,7 +57,12 @@ function Login() {
     };
 
     localStorage.setItem('petwise-user', JSON.stringify(nextUser));
-    navigate('/dashboard');
+    
+    if (form.role === 'admin') {
+      navigate('/admin');
+    } else {
+      navigate('/dashboard');
+    }
   }
 
   return (
@@ -60,6 +85,7 @@ function Login() {
         <div className="auth-form-area">
           <p className="eyebrow">Welcome back</p>
           <h2>Sign in to Petwise</h2>
+          {errors.general && <p style={{color: '#ff5a79', fontWeight: 'bold'}}>{errors.general}</p>}
 
           <form className="form-card" onSubmit={handleSubmit}>
             <label className="form-group">
@@ -69,12 +95,14 @@ function Login() {
 
             <label className="form-group">
               <span>Email</span>
-              <input type="email" name="email" value={form.email} onChange={handleChange} placeholder="you@example.com" />
+              <input type="email" name="email" value={form.email} onChange={handleChange} placeholder="you@example.com" style={errors.email ? {borderColor: '#ff5a79'} : {}} />
+              {errors.email && <span style={{color: '#ff5a79', fontSize: '0.85rem', marginTop: '4px', display: 'block'}}>{errors.email}</span>}
             </label>
 
             <label className="form-group">
               <span>Password</span>
-              <input type="password" name="password" value={form.password} onChange={handleChange} placeholder="Enter your password" />
+              <input type="password" name="password" value={form.password} onChange={handleChange} placeholder="Enter your password" style={errors.password ? {borderColor: '#ff5a79'} : {}} />
+              {errors.password && <span style={{color: '#ff5a79', fontSize: '0.85rem', marginTop: '4px', display: 'block'}}>{errors.password}</span>}
             </label>
 
             <label className="form-group">
