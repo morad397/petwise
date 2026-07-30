@@ -1,62 +1,61 @@
-import { useParams, Link } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import TopBar from '../components/TopBar';
-
-const sampleWeightLog = [
-  { id: 1, petId: 1, date: '2026-06-01', weight: '4.2 kg' },
-  { id: 2, petId: 1, date: '2026-05-01', weight: '4.1 kg' },
-  { id: 3, petId: 1, date: '2026-04-01', weight: '4.0 kg' },
-  { id: 4, petId: 2, date: '2026-06-01', weight: '28 kg' },
-  { id: 5, petId: 2, date: '2026-05-01', weight: '27.5 kg' },
-  { id: 6, petId: 2, date: '2026-04-01', weight: '27 kg' },
-];
-
-const sampleHabits = [
-  { id: 1, petId: 1, habit: 'Sleeps 14 hours a day', status: 'Normal' },
-  { id: 2, petId: 1, habit: 'Drinks water 3-4 times daily', status: 'Normal' },
-  { id: 3, petId: 2, habit: 'Walks twice a day', status: 'Normal' },
-  { id: 4, petId: 2, habit: 'Scratches ears frequently', status: 'Monitor' },
-];
+import { getPetById } from '../services/dataService';
 
 function WeightHabits() {
-  const { id } = useParams();
-  const weightLog = sampleWeightLog.filter((w) => w.petId === Number(id));
-  const habits = sampleHabits.filter((h) => h.petId === Number(id));
+  const { petId } = useParams();
+  const navigate = useNavigate();
+  const [pet, setPet] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const savedUser = JSON.parse(localStorage.getItem('petwise-user') || '{}');
+    const foundPet = getPetById(petId);
+    
+    if (foundPet && String(foundPet.ownerId) === String(savedUser.id)) {
+      setPet(foundPet);
+    } else {
+      alert("Access Denied: You do not have permission to view this pet.");
+      navigate('/pets', { replace: true });
+    }
+    setLoading(false);
+  }, [petId, navigate]);
+
+  if (loading) {
+    return (
+      <div className="app-shell">
+        <TopBar />
+        <main className="page-inner profile-layout"><p>Loading...</p></main>
+      </div>
+    );
+  }
+
+  if (!pet) return null;
 
   return (
     <div className="app-shell">
       <TopBar />
+      <main className="page-inner profile-layout">
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
+          <button className="btn btn-ghost" onClick={() => navigate(`/pets/${pet.id}`)}>← Back to {pet.name}'s Profile</button>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button className="btn btn-primary">Add Weight Entry</button>
+            <button className="btn btn-secondary">Add Habit</button>
+          </div>
+        </div>
 
-      <main className="page-inner">
         <section className="section-card">
-          <p className="eyebrow">Progress tracking</p>
-          <h1>Weight Log</h1>
-          <div className="card-grid">
-            {weightLog.length === 0 ? (
-              <p className="empty-state">No weight records found.</p>
-            ) : (
-              weightLog.map((entry) => (
-                <article className="mini-card" key={entry.id}>
-                  <h3>{entry.date}</h3>
-                  <p>Weight: {entry.weight}</p>
-                </article>
-              ))
-            )}
+          <h2>Weight Tracker for {pet.name}</h2>
+          <div className="empty-state" style={{ padding: '40px 20px', textAlign: 'center' }}>
+            <p>No weight entries added for {pet.name}. Current weight: {pet.weight || 'Unknown'}</p>
           </div>
         </section>
 
-        <section className="section-card margin-top-24">
-          <h1>Daily Habits</h1>
-          <div className="card-grid">
-            {habits.length === 0 ? (
-              <p className="empty-state">No habits recorded.</p>
-            ) : (
-              habits.map((habit) => (
-                <article className="mini-card" key={habit.id}>
-                  <h3>{habit.habit}</h3>
-                  <span className="status-pill">{habit.status}</span>
-                </article>
-              ))
-            )}
+        <section className="section-card">
+          <h2>Habits & Activity for {pet.name}</h2>
+          <div className="empty-state" style={{ padding: '40px 20px', textAlign: 'center' }}>
+            <p>No habits added for {pet.name}.</p>
           </div>
         </section>
       </main>

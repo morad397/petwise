@@ -1,6 +1,11 @@
 import { Routes, Route } from 'react-router-dom';
 import Homepage from './pages/Homepage';
 import AdminDashboard from './pages/AdminDashboard';
+import AdminLayout from './components/admin/AdminLayout';
+import AdminUsers from './pages/admin/AdminUsers';
+import AdminInventory from './pages/admin/AdminInventory';
+import AdminSystem from './pages/admin/AdminSystem';
+import AdminClinics from './pages/admin/AdminClinics';
 import Dashboard from './pages/Dashboard';
 import PetProfile from './pages/PetProfile';
 import AddPet from './pages/AddPet';
@@ -19,33 +24,54 @@ import Reminders from './pages/Reminders';
 import Community from './pages/Community';
 import AiVet from './pages/AiVet';
 import MyPets from './pages/MyPets';
+import ProtectedRoute from './components/ProtectedRoute';
+import ClinicLayout from './components/clinic/ClinicLayout';
+import ClinicAppointments from './pages/clinic/ClinicAppointments';
 
 function App() {
   return (
     <Routes>
       <Route path="/" element={<Homepage />} />
       <Route path="/login" element={<Login />} />
-      <Route path="/dashboard" element={<Dashboard />} />
-      <Route path="/admin" element={<AdminDashboard />} />
-      <Route path="/admin/users" element={<AdminDashboard />} />
-      <Route path="/admin/inventory" element={<AdminDashboard />} />
-      <Route path="/admin/system" element={<AdminDashboard />} />
-      <Route path="/pets" element={<MyPets />} />
-      <Route path="/pets/:id" element={<PetProfile />} />
-      <Route path="/add-pet" element={<AddPet />} />
-      <Route path="/pets/:id/feeding" element={<FeedingSchedule />} />
-      <Route path="/pets/:id/vaccinations" element={<Vaccinations />} />
-      <Route path="/pets/:id/vet-visits" element={<VetVisits />} />
-      <Route path="/pets/:id/weight" element={<WeightHabits />} />
-      <Route path="/pets/:id/recommendations" element={<Recommendations />} />
-      <Route path="/settings" element={<Settings />} />
       <Route path="/signup" element={<Signup />} />
-      <Route path="/appointments" element={<Appointments />} />
-      <Route path="/sos" element={<Sos />} />
-      <Route path="/shop" element={<Shop />} />
-      <Route path="/reminders" element={<Reminders />} />
-      <Route path="/community" element={<Community />} />
-      <Route path="/ai-vet" element={<AiVet />} />
+
+      {/* Admin Routes */}
+      <Route path="/admin" element={<ProtectedRoute allowedRoles={['ADMIN']} />}>
+        <Route element={<AdminLayout />}>
+          <Route index element={<AdminDashboard />} />
+          <Route path="users" element={<AdminUsers />} />
+          <Route path="inventory" element={<AdminInventory />} />
+          <Route path="system" element={<AdminSystem />} />
+          <Route path="clinics" element={<AdminClinics />} />
+        </Route>
+      </Route>
+
+      {/* Clinic Staff Routes */}
+      <Route path="/clinic" element={<ProtectedRoute allowedRoles={['CLINIC_STAFF', 'ADMIN']} />}>
+        <Route element={<ClinicLayout />}>
+          <Route path="appointments" element={<ClinicAppointments />} />
+        </Route>
+      </Route>
+
+      {/* Pet Owner Routes (Protected) */}
+      <Route element={<ProtectedRoute allowedRoles={['PET_OWNER', 'ADMIN', 'CLINIC_STAFF']} />}>
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/pets" element={<MyPets />} />
+        <Route path="/pets/:petId" element={<PetProfile />} />
+        <Route path="/add-pet" element={<AddPet />} />
+        <Route path="/pets/:petId/feeding" element={<FeedingSchedule />} />
+        <Route path="/pets/:petId/medical" element={<Vaccinations />} />
+        <Route path="/pets/:petId/vet-visits" element={<VetVisits />} />
+        <Route path="/pets/:petId/weight-habits" element={<WeightHabits />} />
+        <Route path="/pets/:petId/recommendations" element={<Recommendations />} />
+        <Route path="/settings" element={<Settings />} />
+        <Route path="/appointments" element={<Appointments />} />
+        <Route path="/sos" element={<Sos />} />
+        <Route path="/shop" element={<Shop />} />
+        <Route path="/reminders" element={<Reminders />} />
+        <Route path="/community" element={<Community />} />
+        <Route path="/ai-vet" element={<AiVet />} />
+      </Route>
     </Routes>
   );
 }

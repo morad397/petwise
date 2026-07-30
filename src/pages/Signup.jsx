@@ -38,6 +38,7 @@ function Signup() {
     setErrors({});
 
     localStorage.setItem('petwise-user', JSON.stringify({
+      id: Date.now().toString(),
       fullName: form.fullName,
       email: form.email,
       role: form.role,

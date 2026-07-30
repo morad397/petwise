@@ -1,53 +1,129 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import TopBar from '../components/TopBar';
+import { getPetById } from '../services/dataService';
 
-const quickLinks = [
-  { label: 'Feeding Schedule', path: 'feeding' },
-  { label: 'Vaccinations & Medications', path: 'vaccinations' },
-  { label: 'Vet Visits', path: 'vet-visits' },
-  { label: 'Weight & Habits', path: 'weight' },
-  { label: 'Recommendations', path: 'recommendations' },
-];
+const dogPlaceholder = 'https://images.unsplash.com/photo-1543466835-00a735c71810?auto=format&fit=crop&w=400&q=80';
+const catPlaceholder = 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&w=400&q=80';
+const genericPetPlaceholder = 'https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&w=400&q=80';
+
+const getSpeciesPlaceholder = (species) => {
+  const value = species?.trim().toLowerCase();
+  if (value === "dog") return dogPlaceholder;
+  if (value === "cat") return catPlaceholder;
+  return genericPetPlaceholder;
+};
+
+const breedDisplayNames = {
+  haski: "Husky",
+  husky: "Husky"
+};
+
+const normalizeSpecies = (species) => {
+  const value = species?.trim().toLowerCase();
+  if (value === 'dog') return 'Dog';
+  if (value === 'cat') return 'Cat';
+  return species || 'Unknown';
+};
+
+const normalizeBreed = (breed) => {
+  if (!breed) return '';
+  const value = breed.trim().toLowerCase();
+  return breedDisplayNames[value] || (breed.charAt(0).toUpperCase() + breed.slice(1));
+};
 
 function PetProfile() {
-  const { id } = useParams();
+  const { petId } = useParams();
+  const navigate = useNavigate();
   const [pet, setPet] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [imageError, setImageError] = useState(false);
 
   useEffect(() => {
-    const savedPets = JSON.parse(localStorage.getItem('petwise-pets') || '[]');
     const savedUser = JSON.parse(localStorage.getItem('petwise-user') || '{}');
-    const currentUserEmail = savedUser.email || '';
-
-    const matchedPet = savedPets.find((p) => {
-      if (!p.ownerEmail) {
-        return p.id === Number(id);
+    const foundPet = getPetById(petId);
+    
+    if (foundPet) {
+      if (String(foundPet.ownerId) === String(savedUser.id)) {
+        setPet(foundPet);
+      } else {
+        alert("Access Denied: You do not have permission to view this pet.");
+        navigate('/pets', { replace: true });
       }
+    } else {
+      setPet(null);
+    }
+    setLoading(false);
+  }, [petId, navigate]);
 
-      return p.ownerEmail === currentUserEmail && p.id === Number(id);
-    });
-
-    setPet(matchedPet || null);
-  }, [id]);
+  if (loading) {
+    return (
+      <div className="app-shell">
+        <TopBar />
+        <main className="page-inner profile-layout">
+          <p>Loading pet profile...</p>
+        </main>
+      </div>
+    );
+  }
 
   if (!pet) {
-    return <p className="empty-state">Pet not found</p>;
+    return (
+      <div className="app-shell">
+        <TopBar />
+        <main className="page-inner profile-layout">
+          <section className="section-card empty-state" style={{ textAlign: 'center', padding: '60px 20px' }}>
+            <div style={{ fontSize: '3rem', marginBottom: '16px' }}>🐾</div>
+            <h2>Pet not found</h2>
+            <p style={{ color: '#64748b', marginBottom: '24px' }}>We couldn’t find this pet, or you don’t have permission to view it.</p>
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+              <button className="btn btn-primary" onClick={() => navigate('/pets')}>Back to My Pets</button>
+              <button className="btn btn-secondary" onClick={() => navigate('/dashboard')}>Go to Dashboard</button>
+            </div>
+          </section>
+        </main>
+      </div>
+    );
   }
+
+  const finalImage = imageError ? getSpeciesPlaceholder(pet.species) : (pet.imageUrl || pet.image || pet.photo || pet.avatarUrl || getSpeciesPlaceholder(pet.species));
+
+  const quickLinks = [
+    { label: "Feeding Schedule", path: `/pets/${pet.id}/feeding` },
+    { label: "Vaccinations & Medications", path: `/pets/${pet.id}/medical` },
+    { label: "Vet Visits", path: `/pets/${pet.id}/vet-visits` },
+    { label: "Weight & Habits", path: `/pets/${pet.id}/weight-habits` },
+    { label: "Recommendations", path: `/pets/${pet.id}/recommendations` }
+  ];
 
   return (
     <div className="app-shell">
       <TopBar />
 
       <main className="page-inner profile-layout">
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
+          <button className="btn btn-ghost" onClick={() => navigate('/pets')}>← Back to My Pets</button>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button className="btn btn-secondary">Edit Pet</button>
+            <button className="btn btn-secondary" onClick={() => navigate('/appointments')}>Book Appointment</button>
+            <button className="btn btn-secondary" onClick={() => navigate('/reminders')}>Add Reminder</button>
+          </div>
+        </div>
+
         <section className="section-card profile-header-card">
-          <img src={pet.image} alt={pet.name} className="profile-image" />
+          <img 
+            src={finalImage} 
+            alt={`${pet.name} profile`} 
+            className="profile-image" 
+            onError={() => setImageError(true)} 
+          />
           <div>
             <p className="eyebrow">Pet Profile</p>
             <h1>{pet.name}</h1>
-            <p>{pet.species} • {pet.breed}</p>
+            <p>{normalizeSpecies(pet.species)} {normalizeBreed(pet.breed) ? `• ${normalizeBreed(pet.breed)}` : ''}</p>
             <div className="metrics-inline">
-              <span>Weight: {pet.weight}</span>
-              <span>Age: {pet.age} years</span>
+              <span>Weight: {pet.weight || 'No information added yet'}</span>
+              <span>Age: {pet.age ? `${pet.age} years` : 'No information added yet'}</span>
               <span>Status: Healthy</span>
             </div>
           </div>
@@ -56,11 +132,18 @@ function PetProfile() {
         <section className="section-card">
           <h2>Quick Links</h2>
           <div className="link-grid">
-            {quickLinks.map((item) => (
-              <Link key={item.label} to={`/pets/${pet.id}/${item.path}`} className="quick-link-card">
-                <span>{item.label}</span>
-                <strong>Open</strong>
-              </Link>
+            {quickLinks.map((link) => (
+              <button
+                key={link.label}
+                type="button"
+                className="quick-link-card"
+                onClick={() => navigate(link.path)}
+                aria-label={`Open ${link.label} for ${pet.name}`}
+                style={{ cursor: 'pointer', textAlign: 'left', background: 'none', border: '1px solid #eef1f6', width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+              >
+                <span style={{ fontSize: '1.1rem', fontWeight: '500', color: '#0d1b2a' }}>{link.label}</span>
+                <span style={{ color: '#ff5a79', fontWeight: 'bold' }}>Open →</span>
+              </button>
             ))}
           </div>
         </section>

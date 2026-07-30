@@ -1,41 +1,51 @@
-import { useParams, Link } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import TopBar from '../components/TopBar';
+import { getPetById } from '../services/dataService';
 
-const sampleFeedings = [
-  { id: 1, petId: 1, time: '08:00 AM', food: 'Dry Food - 50g', notes: 'Morning meal' },
-  { id: 2, petId: 1, time: '06:00 PM', food: 'Wet Food - 1 can', notes: 'Evening meal' },
-  { id: 3, petId: 2, time: '07:00 AM', food: 'Dry Food - 200g', notes: 'Morning meal' },
-  { id: 4, petId: 2, time: '12:00 PM', food: 'Treats - 3 pieces', notes: 'Midday snack' },
-  { id: 5, petId: 2, time: '07:00 PM', food: 'Dry Food - 200g', notes: 'Evening meal' },
-];
+function PetFeedingSchedule() {
+  const { petId } = useParams();
+  const navigate = useNavigate();
+  const [pet, setPet] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-function FeedingSchedule() {
-  const { id } = useParams();
-  const feedings = sampleFeedings.filter((f) => f.petId === Number(id));
+  useEffect(() => {
+    const savedUser = JSON.parse(localStorage.getItem('petwise-user') || '{}');
+    const foundPet = getPetById(petId);
+    
+    if (foundPet && String(foundPet.ownerId) === String(savedUser.id)) {
+      setPet(foundPet);
+    } else {
+      alert("Access Denied: You do not have permission to view this pet.");
+      navigate('/pets', { replace: true });
+    }
+    setLoading(false);
+  }, [petId, navigate]);
+
+  if (loading) {
+    return (
+      <div className="app-shell">
+        <TopBar />
+        <main className="page-inner profile-layout"><p>Loading...</p></main>
+      </div>
+    );
+  }
+
+  if (!pet) return null;
 
   return (
     <div className="app-shell">
       <TopBar />
+      <main className="page-inner profile-layout">
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
+          <button className="btn btn-ghost" onClick={() => navigate(`/pets/${pet.id}`)}>← Back to {pet.name}'s Profile</button>
+          <button className="btn btn-primary">Add Feeding Schedule</button>
+        </div>
 
-      <main className="page-inner">
         <section className="section-card">
-          <p className="eyebrow">Feeding routine</p>
-          <h1>Feeding Schedule</h1>
-
-          <div className="timeline-list">
-            {feedings.length === 0 ? (
-              <p className="empty-state">No feeding schedule found for this pet.</p>
-            ) : (
-              feedings.map((feeding) => (
-                <article className="event-card" key={feeding.id}>
-                  <div className="event-time">{feeding.time}</div>
-                  <div>
-                    <h3>{feeding.food}</h3>
-                    <p>{feeding.notes}</p>
-                  </div>
-                </article>
-              ))
-            )}
+          <h2>Feeding Schedule for {pet.name}</h2>
+          <div className="empty-state" style={{ padding: '40px 20px', textAlign: 'center' }}>
+            <p>No feeding records added for {pet.name}.</p>
           </div>
         </section>
       </main>
@@ -43,4 +53,4 @@ function FeedingSchedule() {
   );
 }
 
-export default FeedingSchedule;
+export default PetFeedingSchedule;

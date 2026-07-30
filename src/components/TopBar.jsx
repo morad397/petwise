@@ -31,6 +31,7 @@ export default function TopBar() {
   const [petImage, setPetImage] = useState('https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=100&q=80');
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isPetMenuOpen, setIsPetMenuOpen] = useState(false);
+  const [activePetIndex, setActivePetIndex] = useState(0);
 
   useEffect(() => {
     // Check if user is admin
@@ -44,17 +45,27 @@ export default function TopBar() {
       console.error('Failed to parse user', e);
     }
 
-    // Load pet data
-    try {
-      const savedPets = JSON.parse(localStorage.getItem('petwise-pets') || '[]');
-      setPets(savedPets);
-      if (savedPets.length > 0) {
-        setPetName(savedPets[0].name || 'My Pet');
-        if (savedPets[0].avatar) setPetImage(savedPets[0].avatar);
+    const handlePetChange = () => {
+      try {
+        const savedPets = JSON.parse(localStorage.getItem('petwise-pets') || '[]');
+        setPets(savedPets);
+        
+        let index = Number(localStorage.getItem('petwise-active-pet-index') || 0);
+        if (index >= savedPets.length) index = 0;
+        
+        setActivePetIndex(index);
+        
+        if (savedPets.length > 0 && savedPets[index]) {
+          setPetName(savedPets[index].name || 'My Pet');
+          if (savedPets[index].avatar) setPetImage(savedPets[index].avatar);
+        }
+      } catch (e) {
+        console.error('Failed to parse pets', e);
       }
-    } catch (e) {
-      console.error('Failed to parse pets', e);
-    }
+    };
+
+    window.addEventListener('pet-changed', handlePetChange);
+    handlePetChange(); // initial load
 
     // Load theme preference
     const savedTheme = localStorage.getItem('petwise-theme');
@@ -62,6 +73,8 @@ export default function TopBar() {
       setIsDarkMode(true);
       document.body.classList.add('dark');
     }
+
+    return () => window.removeEventListener('pet-changed', handlePetChange);
   }, []);
 
   const toggleDarkMode = () => {
@@ -107,6 +120,12 @@ export default function TopBar() {
     const priceNum = parseFloat(item.price.replace('$', ''));
     return total + (priceNum * item.quantity);
   }, 0);
+
+  const selectPet = (index) => {
+    localStorage.setItem('petwise-active-pet-index', index);
+    window.dispatchEvent(new Event('pet-changed'));
+    setIsPetMenuOpen(false);
+  };
 
   return (
     <header className="page-topbar">
@@ -189,38 +208,7 @@ export default function TopBar() {
           <LogOut size={20} />
         </button>
         
-        <div style={{ position: 'relative' }}>
-          {!isAdmin && (
-            <>
-              <div className="user-pill" onClick={() => setIsPetMenuOpen(!isPetMenuOpen)}>
-                <img src={petImage} alt={petName} className="user-avatar" />
-                <span className="user-name">{petName}</span>
-                <ChevronDown size={16} />
-              </div>
-
-              {isPetMenuOpen && (
-                <div className="pet-selector-dropdown">
-                  {pets.map((pet, index) => (
-                    <div key={pet.name || index} className="pet-selector-item" onClick={() => setIsPetMenuOpen(false)}>
-                      <img src={pet.avatar || 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=100&q=80'} alt={pet.name} />
-                      <div className="pet-selector-info">
-                        <strong>{pet.name}</strong>
-                        <span>{pet.type || 'Pet'}</span>
-                      </div>
-                      {index === 0 && <Check size={18} color="#ff5a79" style={{ marginLeft: 'auto' }} />}
-                    </div>
-                  ))}
-                  <div className="pet-selector-footer">
-                    <Link to="/add-pet" className="add-pet-link" onClick={() => setIsPetMenuOpen(false)}>
-                      <Plus size={16} />
-                      <span>Add Pet</span>
-                    </Link>
-                  </div>
-                </div>
-              )}
-            </>
-          )}
-        </div>
+        {/* Pet selector (user pill) has been completely removed per user request */}
       </div>
     </header>
   );

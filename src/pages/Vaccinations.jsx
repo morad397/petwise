@@ -1,63 +1,61 @@
-import { useParams, Link } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import TopBar from '../components/TopBar';
-
-const sampleVaccinations = [
-  { id: 1, petId: 1, name: 'Rabies', date: '2026-01-15', nextDue: '2027-01-15', status: 'Done' },
-  { id: 2, petId: 1, name: 'FVRCP', date: '2025-11-20', nextDue: '2026-11-20', status: 'Done' },
-  { id: 3, petId: 2, name: 'Rabies', date: '2026-02-10', nextDue: '2027-02-10', status: 'Done' },
-  { id: 4, petId: 2, name: 'DHPP', date: '2025-12-05', nextDue: '2026-12-05', status: 'Done' },
-  { id: 5, petId: 2, name: 'Bordetella', date: '2026-06-01', nextDue: '2026-12-01', status: 'Upcoming' },
-];
-
-const sampleMedications = [
-  { id: 1, petId: 1, name: 'Flea Treatment', frequency: 'Monthly', nextDose: '2026-07-10' },
-  { id: 2, petId: 2, name: 'Heartworm Prevention', frequency: 'Monthly', nextDose: '2026-07-15' },
-  { id: 3, petId: 2, name: 'Joint Supplement', frequency: 'Daily', nextDose: '2026-06-24' },
-];
+import { getPetById } from '../services/dataService';
 
 function Vaccinations() {
-  const { id } = useParams();
-  const vaccinations = sampleVaccinations.filter((v) => v.petId === Number(id));
-  const medications = sampleMedications.filter((m) => m.petId === Number(id));
+  const { petId } = useParams();
+  const navigate = useNavigate();
+  const [pet, setPet] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const savedUser = JSON.parse(localStorage.getItem('petwise-user') || '{}');
+    const foundPet = getPetById(petId);
+    
+    if (foundPet && String(foundPet.ownerId) === String(savedUser.id)) {
+      setPet(foundPet);
+    } else {
+      alert("Access Denied: You do not have permission to view this pet.");
+      navigate('/pets', { replace: true });
+    }
+    setLoading(false);
+  }, [petId, navigate]);
+
+  if (loading) {
+    return (
+      <div className="app-shell">
+        <TopBar />
+        <main className="page-inner profile-layout"><p>Loading...</p></main>
+      </div>
+    );
+  }
+
+  if (!pet) return null;
 
   return (
     <div className="app-shell">
       <TopBar />
+      <main className="page-inner profile-layout">
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
+          <button className="btn btn-ghost" onClick={() => navigate(`/pets/${pet.id}`)}>← Back to {pet.name}'s Profile</button>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button className="btn btn-primary">Add Vaccination</button>
+            <button className="btn btn-secondary">Add Medication</button>
+          </div>
+        </div>
 
-      <main className="page-inner">
         <section className="section-card">
-          <p className="eyebrow">Health records</p>
-          <h1>Vaccinations</h1>
-          <div className="card-grid">
-            {vaccinations.length === 0 ? (
-              <p className="empty-state">No vaccinations recorded.</p>
-            ) : (
-              vaccinations.map((vac) => (
-                <article className="mini-card" key={vac.id}>
-                  <h3>{vac.name}</h3>
-                  <p>Date: {vac.date}</p>
-                  <p>Next Due: {vac.nextDue}</p>
-                  <span className="status-pill">{vac.status}</span>
-                </article>
-              ))
-            )}
+          <h2>Vaccinations for {pet.name}</h2>
+          <div className="empty-state" style={{ padding: '40px 20px', textAlign: 'center' }}>
+            <p>No vaccination records added for {pet.name}.</p>
           </div>
         </section>
 
-        <section className="section-card margin-top-24">
-          <h1>Medications</h1>
-          <div className="card-grid">
-            {medications.length === 0 ? (
-              <p className="empty-state">No medications recorded.</p>
-            ) : (
-              medications.map((med) => (
-                <article className="mini-card" key={med.id}>
-                  <h3>{med.name}</h3>
-                  <p>Frequency: {med.frequency}</p>
-                  <p>Next Dose: {med.nextDose}</p>
-                </article>
-              ))
-            )}
+        <section className="section-card">
+          <h2>Medications for {pet.name}</h2>
+          <div className="empty-state" style={{ padding: '40px 20px', textAlign: 'center' }}>
+            <p>No medications added for {pet.name}.</p>
           </div>
         </section>
       </main>

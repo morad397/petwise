@@ -58,8 +58,10 @@ function Login() {
 
     localStorage.setItem('petwise-user', JSON.stringify(nextUser));
     
-    if (form.role === 'admin') {
+    if (form.role === 'admin' || form.role === 'ADMIN') {
       navigate('/admin');
+    } else if (form.role === 'CLINIC_STAFF') {
+      navigate('/clinic/appointments');
     } else {
       navigate('/dashboard');
     }
@@ -110,6 +112,7 @@ function Login() {
               <select name="role" value={form.role} onChange={handleChange}>
                 <option value="">Select role</option>
                 <option value="owner">Pet Owner</option>
+                <option value="CLINIC_STAFF">Clinic Staff</option>
                 <option value="admin">Admin</option>
               </select>
             </label>

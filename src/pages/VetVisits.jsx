@@ -1,40 +1,54 @@
-import { useParams, Link } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import TopBar from '../components/TopBar';
-
-const sampleVisits = [
-  { id: 1, petId: 1, date: '2026-01-15', vet: 'Dr. Cohen', reason: 'Annual checkup', notes: 'Healthy, weight is normal' },
-  { id: 2, petId: 1, date: '2025-08-20', vet: 'Dr. Cohen', reason: 'Ear infection', notes: 'Prescribed ear drops for 7 days' },
-  { id: 3, petId: 2, date: '2026-02-10', vet: 'Dr. Levy', reason: 'Annual checkup', notes: 'Slight weight gain, recommended more exercise' },
-  { id: 4, petId: 2, date: '2025-10-05', vet: 'Dr. Levy', reason: 'Limping on front leg', notes: 'X-ray done, no fracture, rest recommended' },
-];
+import { getPetById } from '../services/dataService';
 
 function VetVisits() {
-  const { id } = useParams();
-  const visits = sampleVisits.filter((v) => v.petId === Number(id));
+  const { petId } = useParams();
+  const navigate = useNavigate();
+  const [pet, setPet] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const savedUser = JSON.parse(localStorage.getItem('petwise-user') || '{}');
+    const foundPet = getPetById(petId);
+    
+    if (foundPet && String(foundPet.ownerId) === String(savedUser.id)) {
+      setPet(foundPet);
+    } else {
+      alert("Access Denied: You do not have permission to view this pet.");
+      navigate('/pets', { replace: true });
+    }
+    setLoading(false);
+  }, [petId, navigate]);
+
+  if (loading) {
+    return (
+      <div className="app-shell">
+        <TopBar />
+        <main className="page-inner profile-layout"><p>Loading...</p></main>
+      </div>
+    );
+  }
+
+  if (!pet) return null;
 
   return (
     <div className="app-shell">
       <TopBar />
+      <main className="page-inner profile-layout">
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
+          <button className="btn btn-ghost" onClick={() => navigate(`/pets/${pet.id}`)}>← Back to {pet.name}'s Profile</button>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button className="btn btn-primary">Add Visit Record</button>
+            <button className="btn btn-secondary" onClick={() => navigate('/appointments')}>Book Appointment</button>
+          </div>
+        </div>
 
-      <main className="page-inner">
         <section className="section-card">
-          <p className="eyebrow">Clinic history</p>
-          <h1>Vet Visits</h1>
-          <div className="timeline-list">
-            {visits.length === 0 ? (
-              <p className="empty-state">No vet visits recorded.</p>
-            ) : (
-              visits.map((visit) => (
-                <article className="event-card" key={visit.id}>
-                  <div className="event-time">{visit.date}</div>
-                  <div>
-                    <h3>{visit.reason}</h3>
-                    <p>Vet: {visit.vet}</p>
-                    <p>{visit.notes}</p>
-                  </div>
-                </article>
-              ))
-            )}
+          <h2>Vet Visits for {pet.name}</h2>
+          <div className="empty-state" style={{ padding: '40px 20px', textAlign: 'center' }}>
+            <p>No vet visits recorded for {pet.name}.</p>
           </div>
         </section>
       </main>

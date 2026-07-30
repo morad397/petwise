@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { createPet } from '../services/dataService';
 
 function AddPet() {
   const navigate = useNavigate();
@@ -21,19 +22,21 @@ function AddPet() {
     event.preventDefault();
 
     const savedUser = JSON.parse(localStorage.getItem('petwise-user') || '{}');
-    const savedPets = JSON.parse(localStorage.getItem('petwise-pets') || '[]');
-    const newPet = {
-      id: Date.now(),
-      ownerEmail: savedUser.email || '',
+    if (!savedUser.id) {
+      alert("You must be logged in to add a pet.");
+      return;
+    }
+    
+    createPet({
+      ownerId: savedUser.id,
       name: form.name,
       species: form.species,
       breed: form.breed,
       age: form.age,
       weight: `${form.weight} kg`,
-      image: form.image,
-    };
+      imageUrl: form.image, // Saved as imageUrl
+    });
 
-    localStorage.setItem('petwise-pets', JSON.stringify([...savedPets, newPet]));
     navigate('/dashboard');
   }
 

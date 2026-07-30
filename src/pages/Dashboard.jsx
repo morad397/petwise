@@ -39,25 +39,40 @@ function Dashboard() {
   const [pets, setPets] = useState([]);
   const [userName, setUserName] = useState('Pet Owner');
   const [checklist, setChecklist] = useState(DEFAULT_CHECKLIST);
+  const [activePetIndex, setActivePetIndex] = useState(0);
 
   useEffect(() => {
-    const savedPets = JSON.parse(localStorage.getItem('petwise-pets') || '[]');
-    const savedUser = JSON.parse(localStorage.getItem('petwise-user') || '{}');
-    const currentUserEmail = savedUser.email || '';
+    // Ensure DB is initialized and migrated
+    import('../services/dataService').then(({ initializeDB, getPetsByOwnerId }) => {
+      initializeDB();
 
-    const userPets = savedPets.filter((pet) => {
-      if (!pet.ownerEmail) {
-        return true;
-      }
+      const fetchPetsAndUser = () => {
+        const savedUser = JSON.parse(localStorage.getItem('petwise-user') || '{}');
+        
+        // Use the strict ownership rule
+        const userPets = savedUser.id ? getPetsByOwnerId(savedUser.id) : [];
 
-      return pet.ownerEmail === currentUserEmail;
+        setPets(userPets);
+        setUserName(savedUser.fullName || 'Pet Owner');
+
+        let index = Number(localStorage.getItem('petwise-active-pet-index') || 0);
+        if (index >= userPets.length) index = 0;
+        setActivePetIndex(index);
+      };
+
+      const handlePetChange = () => {
+        let index = Number(localStorage.getItem('petwise-active-pet-index') || 0);
+        setActivePetIndex(index);
+      };
+
+      fetchPetsAndUser();
+      window.addEventListener('pet-changed', handlePetChange);
+
+      return () => window.removeEventListener('pet-changed', handlePetChange);
     });
-
-    setPets(userPets);
-    setUserName(savedUser.fullName || 'Pet Owner');
   }, []);
 
-  const activePet = pets[0] || { name: 'Your Pet', species: 'Pet', breed: '', age: '', image: heroImage };
+  const activePet = pets[activePetIndex] || pets[0] || { name: 'Your Pet', species: 'Pet', breed: '', age: '', image: heroImage };
   const recentActivity = RECENT_ACTIVITY;
   const upcoming = UPCOMING;
   const dueReminders = DUE_REMINDERS;
