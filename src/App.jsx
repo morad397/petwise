@@ -25,8 +25,12 @@ import Community from './pages/Community';
 import AiVet from './pages/AiVet';
 import MyPets from './pages/MyPets';
 import ProtectedRoute from './components/ProtectedRoute';
-import ClinicLayout from './components/clinic/ClinicLayout';
-import ClinicAppointments from './pages/clinic/ClinicAppointments';
+import StaffLayout from './components/clinic/StaffLayout';
+import StaffOverview from './pages/clinic/StaffOverview';
+import StaffAppointments from './pages/clinic/StaffAppointments';
+import StaffPatients from './pages/clinic/StaffPatients';
+import StaffSchedule from './pages/clinic/StaffSchedule';
+import StaffProfile from './pages/clinic/StaffProfile';
 
 function App() {
   return (
@@ -46,10 +50,14 @@ function App() {
         </Route>
       </Route>
 
-      {/* Clinic Staff Routes */}
-      <Route path="/clinic" element={<ProtectedRoute allowedRoles={['CLINIC_STAFF', 'ADMIN']} />}>
-        <Route element={<ClinicLayout />}>
-          <Route path="appointments" element={<ClinicAppointments />} />
+      {/* Staff Routes */}
+      <Route path="/staff" element={<ProtectedRoute allowedRoles={['CLINIC_STAFF', 'ADMIN']} />}>
+        <Route element={<StaffLayout />}>
+          <Route index element={<StaffOverview />} />
+          <Route path="appointments" element={<StaffAppointments />} />
+          <Route path="patients" element={<StaffPatients />} />
+          <Route path="schedule" element={<StaffSchedule />} />
+          <Route path="profile" element={<StaffProfile />} />
         </Route>
       </Route>
 

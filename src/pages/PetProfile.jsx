@@ -1,18 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import TopBar from '../components/TopBar';
+import PetImage from '../components/PetImage';
 import { getPetById } from '../services/dataService';
-
-const dogPlaceholder = 'https://images.unsplash.com/photo-1543466835-00a735c71810?auto=format&fit=crop&w=400&q=80';
-const catPlaceholder = 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&w=400&q=80';
-const genericPetPlaceholder = 'https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&w=400&q=80';
-
-const getSpeciesPlaceholder = (species) => {
-  const value = species?.trim().toLowerCase();
-  if (value === "dog") return dogPlaceholder;
-  if (value === "cat") return catPlaceholder;
-  return genericPetPlaceholder;
-};
 
 const breedDisplayNames = {
   haski: "Husky",
@@ -37,7 +27,6 @@ function PetProfile() {
   const navigate = useNavigate();
   const [pet, setPet] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [imageError, setImageError] = useState(false);
 
   useEffect(() => {
     const savedUser = JSON.parse(localStorage.getItem('petwise-user') || '{}');
@@ -86,8 +75,6 @@ function PetProfile() {
     );
   }
 
-  const finalImage = imageError ? getSpeciesPlaceholder(pet.species) : (pet.imageUrl || pet.image || pet.photo || pet.avatarUrl || getSpeciesPlaceholder(pet.species));
-
   const quickLinks = [
     { label: "Feeding Schedule", path: `/pets/${pet.id}/feeding` },
     { label: "Vaccinations & Medications", path: `/pets/${pet.id}/medical` },
@@ -111,12 +98,7 @@ function PetProfile() {
         </div>
 
         <section className="section-card profile-header-card">
-          <img 
-            src={finalImage} 
-            alt={`${pet.name} profile`} 
-            className="profile-image" 
-            onError={() => setImageError(true)} 
-          />
+          <PetImage pet={pet} className="profile-image" />
           <div>
             <p className="eyebrow">Pet Profile</p>
             <h1>{pet.name}</h1>

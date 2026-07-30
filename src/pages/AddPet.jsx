@@ -2,6 +2,14 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createPet } from '../services/dataService';
 
+const fileToDataUrl = (file) =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+
 function AddPet() {
   const navigate = useNavigate();
   const [form, setForm] = useState({
@@ -10,15 +18,38 @@ function AddPet() {
     breed: '',
     age: '',
     weight: '',
-    image: 'https://images.unsplash.com/photo-1511044568932-338cba0ad803?auto=format&fit=crop&w=900&q=80',
   });
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState('');
+  const [error, setError] = useState('');
 
   function handleChange(event) {
     const { name, value } = event.target;
     setForm((current) => ({ ...current, [name]: value }));
   }
 
-  function handleSubmit(event) {
+  function handleFileChange(event) {
+    const file = event.target.files[0];
+    setError('');
+    
+    if (file) {
+      if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+        setError('Please upload a valid image (JPEG, PNG, or WEBP).');
+        return;
+      }
+      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+        setError('Image file is too large (max 5MB).');
+        return;
+      }
+      setImageFile(file);
+      setImagePreview(URL.createObjectURL(file)); // Only for preview
+    } else {
+      setImageFile(null);
+      setImagePreview('');
+    }
+  }
+
+  async function handleSubmit(event) {
     event.preventDefault();
 
     const savedUser = JSON.parse(localStorage.getItem('petwise-user') || '{}');
@@ -27,6 +58,18 @@ function AddPet() {
       return;
     }
     
+    let persistentImageUrl = '';
+    
+    if (imageFile) {
+      try {
+        persistentImageUrl = await fileToDataUrl(imageFile);
+      } catch (e) {
+        console.error("Failed to process image", e);
+        setError("Failed to process image. Please try again.");
+        return;
+      }
+    }
+
     createPet({
       ownerId: savedUser.id,
       name: form.name,
@@ -34,7 +77,7 @@ function AddPet() {
       breed: form.breed,
       age: form.age,
       weight: `${form.weight} kg`,
-      imageUrl: form.image, // Saved as imageUrl
+      imageUrl: persistentImageUrl, // Saved as persistent Base64
     });
 
     navigate('/dashboard');
@@ -62,14 +105,15 @@ function AddPet() {
           <h2>Add your pet</h2>
 
           <form className="form-card" onSubmit={handleSubmit}>
+            {error && <div style={{ color: 'red', marginBottom: '10px' }}>{error}</div>}
             <label className="form-group">
               <span>Pet Name</span>
-              <input type="text" name="name" value={form.name} onChange={handleChange} placeholder="Enter pet name" />
+              <input type="text" name="name" value={form.name} onChange={handleChange} placeholder="Enter pet name" required />
             </label>
 
             <label className="form-group">
               <span>Species</span>
-              <select name="species" value={form.species} onChange={handleChange}>
+              <select name="species" value={form.species} onChange={handleChange} required>
                 <option value="">Select species</option>
                 <option value="dog">Dog</option>
                 <option value="cat">Cat</option>
@@ -90,6 +134,18 @@ function AddPet() {
               <span>Weight (kg)</span>
               <input type="text" name="weight" value={form.weight} onChange={handleChange} placeholder="Enter weight" />
             </label>
+            
+            <label className="form-group">
+              <span>Pet Photo (Optional)</span>
+              <input type="file" accept="image/jpeg, image/png, image/webp" onChange={handleFileChange} />
+              <small style={{ color: '#64748b' }}>A real backend will later upload images to cloud storage.</small>
+            </label>
+            
+            {imagePreview && (
+              <div style={{ marginBottom: '16px' }}>
+                <img src={imagePreview} alt="Preview" style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '12px' }} />
+              </div>
+            )}
 
             <button type="submit" className="btn btn-primary btn-full">Save Pet</button>
           </form>

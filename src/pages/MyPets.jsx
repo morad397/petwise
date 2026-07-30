@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import TopBar from '../components/TopBar';
+import PetImage from '../components/PetImage';
 import { getPetsByOwnerId } from '../services/dataService';
 
 function MyPets() {
@@ -54,13 +55,7 @@ function MyPets() {
             {pets.map((pet) => (
               <article key={pet.id || pet.name} className="pet-card">
                 <div className="pet-card-header">
-                  {pet.avatar ? (
-                    <img src={pet.avatar} alt={pet.name} style={{width: 52, height: 52, borderRadius: 18, objectFit: 'cover'}} />
-                  ) : (
-                    <div className="pet-avatar">
-                      {pet.species === 'cat' || pet.type === 'cat' ? '🐱' : '🐶'}
-                    </div>
-                  )}
+                  <PetImage pet={pet} style={{width: 52, height: 52, borderRadius: 18, objectFit: 'cover'}} />
                   <div>
                     <strong>{pet.name}</strong>
                     <br />

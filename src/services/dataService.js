@@ -51,41 +51,53 @@ const writeDB = (key, data) => {
 
 // --- Migration ---
 const migrateLegacyPets = () => {
-  const isMigrated = localStorage.getItem('petwise_migration_v1');
+  const isMigrated = localStorage.getItem('petwise_pet_image_migration_v2');
   if (isMigrated === 'true') return;
 
   const pets = readDB(DB_KEYS.PETS);
   let changed = false;
 
-  // Since we only have the current user in this prototype (no user table), 
-  // we can only reliably migrate pets matching the current user's email, or those with no email at all.
   let currentUser = JSON.parse(localStorage.getItem('petwise-user') || '{}');
   
-  // If the current user exists but has no ID (legacy signup), generate one for them now.
   if (currentUser.email && !currentUser.id) {
     currentUser.id = Date.now().toString();
     localStorage.setItem('petwise-user', JSON.stringify(currentUser));
   }
 
   const updatedPets = pets.map(pet => {
-    if (!pet.ownerId) {
+    let modifiedPet = { ...pet };
+    
+    // Normalize image fields
+    const legacyImage = modifiedPet.imageUrl || modifiedPet.image || modifiedPet.photo || modifiedPet.avatarUrl || modifiedPet.petImage || '';
+    
+    // Remove blob URLs
+    if (legacyImage && legacyImage.startsWith('blob:')) {
+      modifiedPet.imageUrl = '';
       changed = true;
-      // If the pet has an ownerEmail matching the current user, or no ownerEmail at all, assign to current user.
-      if (!pet.ownerEmail || pet.ownerEmail === currentUser.email) {
-        return { ...pet, ownerId: currentUser.id || 'unassigned', id: pet.id || Date.now().toString() };
+    } else if (legacyImage !== modifiedPet.imageUrl) {
+      modifiedPet.imageUrl = legacyImage;
+      changed = true;
+    }
+
+    // Ownership migration (from v1)
+    if (!modifiedPet.ownerId) {
+      changed = true;
+      if (!modifiedPet.ownerEmail || modifiedPet.ownerEmail === currentUser.email) {
+        modifiedPet.ownerId = currentUser.id || 'unassigned';
+        modifiedPet.id = modifiedPet.id || Date.now().toString();
       } else {
-        // If it belongs to some other email, just give it a stable id for now
-        return { ...pet, id: pet.id || Date.now().toString() };
+        modifiedPet.id = modifiedPet.id || Date.now().toString();
       }
     }
-    return pet;
+    
+    return modifiedPet;
   });
 
   if (changed) {
     writeDB(DB_KEYS.PETS, updatedPets);
   }
 
-  localStorage.setItem('petwise_migration_v1', 'true');
+  localStorage.setItem('petwise_pet_image_migration_v2', 'true');
 };
 
 // --- Initialization ---

@@ -35,6 +35,8 @@ const AI_PICKS = [
   { id: 2, image: heroImage, label: 'Orthopedic Memory Foam Bed', price: '89.99' },
 ];
 
+import PetImage from '../components/PetImage';
+
 function Dashboard() {
   const [pets, setPets] = useState([]);
   const [userName, setUserName] = useState('Pet Owner');
@@ -72,7 +74,7 @@ function Dashboard() {
     });
   }, []);
 
-  const activePet = pets[activePetIndex] || pets[0] || { name: 'Your Pet', species: 'Pet', breed: '', age: '', image: heroImage };
+  const activePet = pets[activePetIndex] || pets[0] || { name: 'Your Pet', species: 'Pet', breed: '', age: '' };
   const recentActivity = RECENT_ACTIVITY;
   const upcoming = UPCOMING;
   const dueReminders = DUE_REMINDERS;
@@ -122,7 +124,7 @@ function Dashboard() {
             <div className="dash-grid">
               <div className="dash-col-main">
                 <section className="section-card dash-pet-card">
-                  <img src={activePet.image} alt={activePet.name} className="dash-pet-avatar" />
+                  <PetImage pet={activePet} className="dash-pet-avatar" />
                   <div className="dash-pet-info">
                     <div className="dash-pet-name-row">
                       <h3>{activePet.name}</h3>

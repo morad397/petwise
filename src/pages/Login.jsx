@@ -61,7 +61,7 @@ function Login() {
     if (form.role === 'admin' || form.role === 'ADMIN') {
       navigate('/admin');
     } else if (form.role === 'CLINIC_STAFF') {
-      navigate('/clinic/appointments');
+      navigate('/staff');
     } else {
       navigate('/dashboard');
     }
