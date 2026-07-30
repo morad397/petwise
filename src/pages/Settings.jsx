@@ -47,10 +47,7 @@ function Settings() {
   }
 
   return (
-    <div className="app-shell">
-      <TopBar />
-
-      <main className="page-inner settings-layout">
+    <>
         <section className="section-card">
           <p className="eyebrow">Preferences</p>
           <h1>Settings</h1>
@@ -100,8 +97,7 @@ function Settings() {
             <button type="submit" className="btn btn-primary">Save Settings</button>
           </form>
         </section>
-      </main>
-    </div>
+      </>
   );
 }
 

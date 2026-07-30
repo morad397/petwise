@@ -9,10 +9,7 @@ const reminders = [
 
 function Reminders() {
   return (
-    <div className="app-shell">
-      <TopBar />
-
-      <main className="page-inner dashboard-layout">
+    <>
         <section className="section-card hero-panel dashboard-hero">
           <div>
             <p className="eyebrow">Reminders</p>
@@ -31,8 +28,7 @@ function Reminders() {
             </article>
           ))}
         </section>
-      </main>
-    </div>
+      </>
   );
 }
 

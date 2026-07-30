@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import TopBar from '../components/TopBar';
 import PetImage from '../components/PetImage';
 import { getPetsByOwnerId } from '../services/dataService';
 
@@ -27,10 +26,7 @@ function MyPets() {
   }, []);
 
   return (
-    <div className="app-shell">
-      <TopBar />
-
-      <main className="page-inner dashboard-layout">
+    <>
         <section className="section-card hero-panel dashboard-hero">
           <div>
             <p className="eyebrow">My Pets</p>
@@ -69,8 +65,7 @@ function MyPets() {
             ))}
           </section>
         )}
-      </main>
-    </div>
+      </>
   );
 }
 

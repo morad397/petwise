@@ -87,10 +87,7 @@ function Dashboard() {
   };
 
   return (
-    <div className="app-shell">
-      <TopBar />
-
-      <main className="page-inner dashboard-layout">
+    <>
         <section className="section-card hero-panel dashboard-hero">
           <div>
             <p className="eyebrow">Your pet family</p>
@@ -278,8 +275,7 @@ function Dashboard() {
             </div>
           </>
         )}
-      </main>
-    </div>
+      </>
   );
 }
 

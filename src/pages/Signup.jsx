@@ -1,14 +1,28 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
 function Signup() {
   const navigate = useNavigate();
+  const [clinics, setClinics] = useState([]);
+  
   const [form, setForm] = useState({
     fullName: '',
     email: '',
     password: '',
+    confirmPassword: '',
     role: '',
+    clinicId: '',
+    department: ''
   });
+
+  useEffect(() => {
+    try {
+      const storedClinics = JSON.parse(localStorage.getItem('petwise-clinics') || '[]');
+      setClinics(storedClinics);
+    } catch (e) {
+      setClinics([]);
+    }
+  }, []);
 
   function handleChange(event) {
     const { name, value } = event.target;
@@ -22,13 +36,25 @@ function Signup() {
 
     let newErrors = {};
     if (!form.email && !form.password) {
-      newErrors.general = 'something wrong try again';
-      newErrors.email = 'email not right';
-      newErrors.password = 'password is not right';
+      newErrors.general = 'Please fill out all fields.';
+      newErrors.email = 'Email is required';
+      newErrors.password = 'Password is required';
     } else if (!form.email) {
-      newErrors.email = 'email not right';
+      newErrors.email = 'Email is required';
     } else if (!form.password) {
-      newErrors.password = 'password is not right';
+      newErrors.password = 'Password is required';
+    }
+    
+    if (form.password !== form.confirmPassword) {
+      newErrors.general = 'Passwords do not match.';
+    }
+    
+    if (!form.role) {
+      newErrors.general = 'Please select a role.';
+    }
+
+    if (form.role === 'CLINIC_STAFF' && clinics.length > 0 && !form.clinicId) {
+      newErrors.general = 'Please select a clinic for your staff account.';
     }
 
     if (Object.keys(newErrors).length > 0) {
@@ -37,17 +63,55 @@ function Signup() {
     }
     setErrors({});
 
-    localStorage.setItem('petwise-user', JSON.stringify({
-      id: Date.now().toString(),
-      fullName: form.fullName,
-      email: form.email,
-      role: form.role,
-    }));
+    const normalizedEmail = form.email.trim().toLowerCase();
     
-    if (form.role === 'admin') {
-      navigate('/admin');
-    } else {
-      navigate('/add-pet');
+    // Check canonical users list
+    const usersStr = localStorage.getItem('petwise-users');
+    let users = [];
+    if (usersStr) {
+      users = JSON.parse(usersStr);
+    }
+    
+    const existingUser = users.find(u => u.email === normalizedEmail);
+    if (existingUser) {
+      setErrors({ email: 'An account with this email already exists.' });
+      return;
+    }
+
+    // DEMO ONLY: 
+    // Public role selection is not secure. 
+    // Production roles must be assigned and authorized by the backend.
+    const newUser = {
+      id: crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(),
+      fullName: form.fullName.trim() || 'User',
+      email: normalizedEmail,
+      password: form.password, // Frontend mock
+      role: form.role,
+      clinicId: form.role === 'CLINIC_STAFF' ? (form.clinicId || null) : undefined,
+      department: form.role === 'CLINIC_STAFF' ? (form.department || 'General Medicine') : undefined,
+      status: 'Active',
+      date: new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })
+    };
+
+    // Save to canonical DB
+    users.push(newUser);
+    localStorage.setItem('petwise-users', JSON.stringify(users));
+
+    // Save to active session
+    localStorage.setItem('petwise-user', JSON.stringify(newUser));
+    
+    switch (newUser.role) {
+      case 'PET_OWNER':
+        navigate('/dashboard', { replace: true });
+        break;
+      case 'CLINIC_STAFF':
+        navigate('/staff', { replace: true });
+        break;
+      case 'ADMIN':
+        navigate('/admin', { replace: true });
+        break;
+      default:
+        navigate('/', { replace: true });
     }
   }
 
@@ -93,19 +157,47 @@ function Signup() {
 
             <label className="form-group">
               <span>Confirm Password</span>
-              <input type="password" placeholder="Confirm your password" />
+              <input type="password" name="confirmPassword" value={form.confirmPassword} onChange={handleChange} placeholder="Confirm your password" />
             </label>
 
             <label className="form-group">
-              <span>Register as</span>
+              <span>Select Role</span>
               <select name="role" value={form.role} onChange={handleChange}>
-                <option value="">Select role</option>
-                <option value="owner">Pet Owner</option>
-                <option value="admin">Admin</option>
+                <option value="">Choose your role</option>
+                <option value="PET_OWNER">Pet Owner</option>
+                <option value="CLINIC_STAFF">Clinic Staff</option>
+                <option value="ADMIN">Admin</option>
               </select>
             </label>
 
-            <button type="submit" className="btn btn-primary btn-full">Continue</button>
+            {form.role === 'CLINIC_STAFF' && (
+              <div style={{ marginTop: '8px', padding: '16px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                <h4 style={{ margin: '0 0 12px 0', fontSize: '0.95rem', color: '#334155' }}>Clinic Staff Information</h4>
+                
+                {clinics.length > 0 ? (
+                  <label className="form-group">
+                    <span>Clinic</span>
+                    <select name="clinicId" value={form.clinicId} onChange={handleChange} required>
+                      <option value="">Select a Clinic</option>
+                      {clinics.map(c => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                      ))}
+                    </select>
+                  </label>
+                ) : (
+                  <div style={{ padding: '12px', background: '#fffbeb', color: '#b45309', borderRadius: '8px', fontSize: '0.85rem', marginBottom: '12px' }}>
+                    <strong>Note:</strong> No clinics are currently registered in the system. You will be registered as an unassigned staff member.
+                  </div>
+                )}
+
+                <label className="form-group" style={{ marginBottom: 0 }}>
+                  <span>Department</span>
+                  <input type="text" name="department" value={form.department} onChange={handleChange} placeholder="e.g. Surgery, Reception" />
+                </label>
+              </div>
+            )}
+
+            <button type="submit" className="btn btn-primary btn-full" style={{ marginTop: '8px' }}>Continue</button>
           </form>
 
           <p className="auth-link-row">

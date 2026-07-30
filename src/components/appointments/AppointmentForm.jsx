@@ -12,6 +12,7 @@ export default function AppointmentForm({
   const [clinics, setClinics] = useState([]);
   const [availableServices, setAvailableServices] = useState([]);
   const [availableSlots, setAvailableSlots] = useState([]);
+  const [slotStatus, setSlotStatus] = useState("CLINIC_NOT_SELECTED");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [form, setForm] = useState({
@@ -57,8 +58,14 @@ export default function AppointmentForm({
   // Handle date selection changes for slot availability
   useEffect(() => {
     if (form.clinicId && form.appointmentDate) {
-      setAvailableSlots(getAvailableSlots(form.clinicId, form.appointmentDate));
-    } else {
+      const result = getAvailableSlots(form.clinicId, form.appointmentDate);
+      setSlotStatus(result.status);
+      setAvailableSlots(result.slots);
+    } else if (!form.clinicId) {
+      setSlotStatus("CLINIC_NOT_SELECTED");
+      setAvailableSlots([]);
+    } else if (!form.appointmentDate) {
+      setSlotStatus("DATE_NOT_SELECTED");
       setAvailableSlots([]);
     }
   }, [form.clinicId, form.appointmentDate]);
@@ -119,10 +126,21 @@ export default function AppointmentForm({
 
         <div className="form-group">
           <span>Select Clinic *</span>
-          <select required name="clinicId" value={form.clinicId} onChange={handleChange} className="input-field">
+          <select 
+            required 
+            name="clinicId" 
+            value={form.clinicId} 
+            onChange={(e) => {
+              handleChange(e);
+              setForm(prev => ({ ...prev, serviceId: '', appointmentTime: '' }));
+            }} 
+            className="input-field"
+          >
             <option value="">-- Choose a clinic --</option>
             {clinics.map(clinic => (
-              <option key={clinic.id} value={clinic.id}>{clinic.name}</option>
+              <option key={clinic.id} value={clinic.id}>
+                {clinic.name} — {clinic.city}
+              </option>
             ))}
           </select>
         </div>
@@ -168,23 +186,33 @@ export default function AppointmentForm({
           />
         </div>
 
-        {form.appointmentDate && (
-          <div className="form-group">
-            <span>Time *</span>
-            {availableSlots.length > 0 ? (
-              <select required name="appointmentTime" value={form.appointmentTime} onChange={handleChange} className="input-field">
-                <option value="">-- Choose a time --</option>
-                {availableSlots.map(slot => (
-                  <option key={slot} value={slot}>{slot}</option>
-                ))}
-              </select>
-            ) : (
-              <p style={{ color: '#d93025', padding: '12px', background: '#fce8e6', borderRadius: '8px' }}>
-                No available slots for this date.
-              </p>
-            )}
-          </div>
-        )}
+        <div className="form-group">
+          <span>Time *</span>
+          {slotStatus === "CLINIC_NOT_SELECTED" && (
+            <p style={{ color: '#64748b' }}>Select a clinic first to view available times.</p>
+          )}
+          {slotStatus === "DATE_NOT_SELECTED" && (
+            <p style={{ color: '#64748b' }}>Select a date to view available times.</p>
+          )}
+          {slotStatus === "CLINIC_CLOSED" && (
+            <p style={{ color: '#d93025', padding: '12px', background: '#fce8e6', borderRadius: '8px' }}>
+              This clinic is closed on the selected date.
+            </p>
+          )}
+          {slotStatus === "FULLY_BOOKED" && (
+            <p style={{ color: '#d93025', padding: '12px', background: '#fce8e6', borderRadius: '8px' }}>
+              No available slots for this date.
+            </p>
+          )}
+          {slotStatus === "AVAILABLE" && (
+            <select required name="appointmentTime" value={form.appointmentTime} onChange={handleChange} className="input-field">
+              <option value="">-- Choose a time --</option>
+              {availableSlots.map(slot => (
+                <option key={slot} value={slot}>{slot}</option>
+              ))}
+            </select>
+          )}
+        </div>
 
         <div className="form-group">
           <span>Additional Notes</span>

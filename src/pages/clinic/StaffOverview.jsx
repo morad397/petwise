@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Calendar, Clock, CheckCircle, CheckSquare, Users } from 'lucide-react';
 import PetImage from '../../components/PetImage';
+import { getPetById } from '../../services/dataService';
 
 function StaffOverview() {
   const navigate = useNavigate();
@@ -9,50 +11,94 @@ function StaffOverview() {
 
   useEffect(() => {
     const allAppointments = JSON.parse(localStorage.getItem('petwise-appointments') || '[]');
-    // For demonstration, if staff doesn't have a clinicId, let's just show all or none.
-    // In a real app, staff.clinicId is assigned. Let's filter by it if it exists.
     const clinicAppointments = staffMember.clinicId 
       ? allAppointments.filter(app => String(app.clinicId) === String(staffMember.clinicId))
-      : allAppointments; // Fallback for demo
+      : [];
       
     setAppointments(clinicAppointments);
   }, [staffMember.clinicId]);
 
+  const todaysAppointments = appointments.length;
   const pending = appointments.filter(a => a.status === 'PENDING').length;
   const confirmed = appointments.filter(a => a.status === 'CONFIRMED').length;
   const completed = appointments.filter(a => a.status === 'COMPLETED').length;
-  const uniquePatients = new Set(appointments.map(a => a.petId)).size;
+  const uniquePatients = new Set(appointments.map(a => a.petId).filter(Boolean)).size;
+
+  const getPetDetails = (app) => {
+    if (app.petId) {
+      const pet = getPetById(app.petId);
+      if (pet) {
+        return { name: pet.name, species: pet.species, imageUrl: pet.imageUrl, ownerName: pet.ownerName || app.ownerName || 'Unknown Owner' };
+      }
+    }
+    return { name: app.petName || 'Unknown Pet', species: app.petSpecies, imageUrl: app.petImage, ownerName: app.ownerName || 'Unknown Owner' };
+  };
 
   return (
     <div>
-      <div style={{ marginBottom: '32px' }}>
-        <h1 style={{ fontSize: '2rem', marginBottom: '8px' }}>Clinic Staff Dashboard</h1>
-        <p style={{ color: '#64748b' }}>Manage appointments, patients and today’s clinic activity.</p>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '32px' }}>
+        <div>
+          <h1 style={{ fontSize: '2rem', marginBottom: '4px', color: '#0f2138' }}>Clinic Staff Dashboard</h1>
+          <p style={{ color: '#64748b', margin: 0 }}>Manage appointments, patients and today’s clinic activity.</p>
+        </div>
+        <span className="status-pill status-active" style={{ fontSize: '0.7rem', padding: '2px 8px', alignSelf: 'flex-start', marginTop: '8px' }}>Frontend Demo — Backend connection planned</span>
       </div>
 
-      <div className="admin-grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)', marginBottom: '32px' }}>
-        <div className="admin-stat-card">
-          <div className="stat-label">Pending Requests</div>
-          <div className="stat-value">{pending}</div>
+      {!staffMember.clinicId && (
+        <div style={{ padding: '16px', background: '#fef2f2', border: '1px solid #f87171', color: '#b91c1c', borderRadius: '12px', marginBottom: '32px' }}>
+          <strong>Attention:</strong> No clinic is assigned to this account. An Admin must assign a clinic before clinic appointments can be accessed.
         </div>
-        <div className="admin-stat-card">
-          <div className="stat-label">Confirmed Appointments</div>
-          <div className="stat-value">{confirmed}</div>
+      )}
+
+      <div className="admin-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', marginBottom: '32px' }}>
+        <div className="section-card" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ color: '#3b82f6' }}><Calendar size={24} /></div>
+          </div>
+          <div style={{ fontSize: '2rem', fontWeight: 800, color: '#0f2138' }}>{todaysAppointments}</div>
+          <div style={{ color: '#64748b', fontSize: '0.9rem', fontWeight: 500 }}>Today's Appointments</div>
         </div>
-        <div className="admin-stat-card">
-          <div className="stat-label">Completed Visits</div>
-          <div className="stat-value">{completed}</div>
+        
+        <div className="section-card" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ color: '#f59e0b' }}><Clock size={24} /></div>
+          </div>
+          <div style={{ fontSize: '2rem', fontWeight: 800, color: '#0f2138' }}>{pending}</div>
+          <div style={{ color: '#64748b', fontSize: '0.9rem', fontWeight: 500 }}>Pending Requests</div>
         </div>
-        <div className="admin-stat-card">
-          <div className="stat-label">Total Patients</div>
-          <div className="stat-value">{uniquePatients}</div>
+
+        <div className="section-card" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ color: '#10b981' }}><CheckCircle size={24} /></div>
+          </div>
+          <div style={{ fontSize: '2rem', fontWeight: 800, color: '#0f2138' }}>{confirmed}</div>
+          <div style={{ color: '#64748b', fontSize: '0.9rem', fontWeight: 500 }}>Confirmed Appointments</div>
+        </div>
+
+        <div className="section-card" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ color: '#8b5cf6' }}><CheckSquare size={24} /></div>
+          </div>
+          <div style={{ fontSize: '2rem', fontWeight: 800, color: '#0f2138' }}>{completed}</div>
+          <div style={{ color: '#64748b', fontSize: '0.9rem', fontWeight: 500 }}>Completed Visits</div>
+        </div>
+
+        <div className="section-card" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ color: '#ff5a79' }}><Users size={24} /></div>
+          </div>
+          <div style={{ fontSize: '2rem', fontWeight: 800, color: '#0f2138' }}>{uniquePatients}</div>
+          <div style={{ color: '#64748b', fontSize: '0.9rem', fontWeight: 500 }}>Total Patients</div>
         </div>
       </div>
 
-      <section className="admin-card">
-        <div className="admin-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h2>Today's Schedule</h2>
-          <button className="btn btn-secondary" onClick={() => navigate('/staff/appointments')}>View All</button>
+      <section className="section-card">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+          <div>
+            <h2 style={{ fontSize: '1.25rem', color: '#0f2138', margin: 0 }}>Today's Schedule</h2>
+            <p style={{ color: '#64748b', fontSize: '0.85rem', margin: '4px 0 0 0' }}>{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</p>
+          </div>
+          <button className="btn btn-secondary" style={{ padding: '8px 16px', fontSize: '0.9rem' }} onClick={() => navigate('/staff/appointments')}>View All</button>
         </div>
         
         {appointments.length === 0 ? (
@@ -60,38 +106,42 @@ function StaffOverview() {
             <p>No appointments scheduled for today.</p>
           </div>
         ) : (
-          <table className="admin-table">
-            <thead>
-              <tr>
-                <th>Time</th>
-                <th>Pet</th>
-                <th>Reason</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {appointments.slice(0, 5).map(app => (
-                <tr key={app.id}>
-                  <td>{app.date} • {app.time || '10:00 AM'}</td>
-                  <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <PetImage pet={{ species: app.petSpecies, imageUrl: app.petImage }} style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} />
-                      <div>
-                        <div style={{ fontWeight: 500 }}>{app.petName || 'Unknown Pet'}</div>
-                        <div style={{ fontSize: '0.8rem', color: '#64748b' }}>{app.ownerName || 'Unknown Owner'}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td>{app.reason}</td>
-                  <td>
-                    <span className={`status-pill status-${(app.status || '').toLowerCase()}`}>
-                      {app.status || 'PENDING'}
-                    </span>
-                  </td>
+          <div style={{ overflowX: 'auto' }}>
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>Time</th>
+                  <th>Pet</th>
+                  <th>Owner</th>
+                  <th>Reason</th>
+                  <th>Status</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {appointments.slice(0, 5).map(app => {
+                  const petDetails = getPetDetails(app);
+                  return (
+                    <tr key={app.id}>
+                      <td style={{ whiteSpace: 'nowrap' }}>{app.date}<br/><small style={{ color: '#64748b' }}>{app.time || '10:00 AM'}</small></td>
+                      <td>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          <PetImage pet={{ species: petDetails.species, imageUrl: petDetails.imageUrl }} style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} />
+                          <div style={{ fontWeight: 500, color: '#0f2138' }}>{petDetails.name}</div>
+                        </div>
+                      </td>
+                      <td style={{ color: '#64748b' }}>{petDetails.ownerName}</td>
+                      <td>{app.reason || <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>No reason provided</span>}</td>
+                      <td>
+                        <span className={`status-pill status-${(app.status || '').toLowerCase()}`}>
+                          {app.status || 'PENDING'}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
       </section>
     </div>

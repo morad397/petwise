@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Server, Database, Brain, Bell, CreditCard, Activity, Save } from 'lucide-react';
+import { Server, Database, Brain, Bell, CreditCard, Activity, Save, TriangleAlert, CheckCircle } from 'lucide-react';
 import StatusBadge from '../../components/admin/StatusBadge';
+import { resetDevelopmentData } from '../../services/dataService';
 
 const MOCK_ACTIVITY_LOG = [
   { id: 1, date: 'Today, 10:45 AM', user: 'Hanan Taha', action: 'User Role Updated', target: 'John Doe (Pet Owner -> Staff)', result: 'Success' },
@@ -21,19 +22,66 @@ export default function AdminSystem() {
     appointmentReminders: true
   });
   
+  const [emergencySettings, setEmergencySettings] = useState({
+    emergencyPhone: '',
+    emergencyContactName: '',
+    availabilityText: '',
+    emergencyDisclaimer: ''
+  });
+  
   const [logFilter, setLogFilter] = useState('All');
+
+  // Development Reset State
+  const [showResetModal, setShowResetModal] = useState(false);
+  const [resetConfirmation, setResetConfirmation] = useState('');
+
+  const handleResetData = () => {
+    if (resetConfirmation !== 'RESET PETWISE') return;
+    try {
+      const currentAdmin = JSON.parse(localStorage.getItem('petwise-user') || '{}');
+      if (currentAdmin.role !== 'ADMIN' && currentAdmin.role !== 'admin') {
+        alert('Unauthorized!');
+        return;
+      }
+      resetDevelopmentData(currentAdmin.id);
+      setShowResetModal(false);
+      setResetConfirmation('');
+      alert('Development data was reset successfully.');
+      window.location.reload();
+    } catch (err) {
+      alert('Failed to reset data: ' + err.message);
+    }
+  };
 
   useEffect(() => {
     const saved = localStorage.getItem('petwise-admin-settings');
     if (saved) {
       setSettings(JSON.parse(saved));
     }
+    
+    try {
+      const { getEmergencySettings } = require('../../services/emergencyService');
+      setEmergencySettings(getEmergencySettings());
+    } catch(e) {}
   }, []);
 
   const handleSaveSettings = (e) => {
     e.preventDefault();
     localStorage.setItem('petwise-admin-settings', JSON.stringify(settings));
     alert('Settings saved successfully!');
+  };
+  
+  const handleSaveEmergencySettings = (e) => {
+    e.preventDefault();
+    if (window.confirm("Are you sure you want to update the global emergency contact information?")) {
+      try {
+        const { updateEmergencySettings } = require('../../services/emergencyService');
+        updateEmergencySettings(emergencySettings);
+        alert('Emergency settings saved successfully!');
+      } catch(e) {
+        alert('Failed to save emergency settings.');
+      }
+    }
   };
 
   const services = [
@@ -129,6 +177,35 @@ export default function AdminSystem() {
               </button>
             </form>
           </section>
+          
+          {/* SECTION B2: EMERGENCY SETTINGS */}
+          <section className="section-card" style={{ border: '2px solid #fee2e2' }}>
+            <div className="card-header" style={{ borderBottom: '1px solid #fee2e2', paddingBottom: '12px' }}>
+              <h3 style={{ color: '#b91c1c' }}>Emergency Settings</h3>
+            </div>
+            <form onSubmit={handleSaveEmergencySettings} style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '16px' }}>
+              <div className="input-group">
+                <label>Emergency Contact Name</label>
+                <input type="text" className="input-field" placeholder="e.g. National Pet Poison Helpline" value={emergencySettings.emergencyContactName} onChange={e => setEmergencySettings({...emergencySettings, emergencyContactName: e.target.value})} />
+              </div>
+              <div className="input-group">
+                <label>Emergency Phone</label>
+                <input type="tel" className="input-field" placeholder="e.g. +1 555-0000" value={emergencySettings.emergencyPhone} onChange={e => setEmergencySettings({...emergencySettings, emergencyPhone: e.target.value})} />
+              </div>
+              <div className="input-group">
+                <label>Availability Text</label>
+                <input type="text" className="input-field" placeholder="e.g. Available 24/7" value={emergencySettings.availabilityText} onChange={e => setEmergencySettings({...emergencySettings, availabilityText: e.target.value})} />
+              </div>
+              <div className="input-group">
+                <label>Emergency Disclaimer</label>
+                <textarea className="input-field" style={{ minHeight: '80px', resize: 'vertical' }} value={emergencySettings.emergencyDisclaimer} onChange={e => setEmergencySettings({...emergencySettings, emergencyDisclaimer: e.target.value})} />
+              </div>
+
+              <button type="submit" className="btn" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginTop: '16px', background: '#ef4444', color: 'white', fontWeight: 600 }}>
+                <Save size={18} /> Save Emergency Config
+              </button>
+            </form>
+          </section>
 
           {/* SECTION C: ROLE & PERMISSION MANAGEMENT */}
           <section className="section-card">
@@ -198,7 +275,103 @@ export default function AdminSystem() {
           </div>
         </section>
 
+        {/* SECTION E: DEVELOPMENT TOOLS */}
+        {(!import.meta.env.PROD) && (
+          <section className="section-card" style={{ border: '1px solid #fecaca', background: '#fff' }}>
+            <div className="card-header" style={{ borderBottom: '1px solid #fee2e2', paddingBottom: '16px', marginBottom: '16px' }}>
+              <h3 style={{ color: '#b91c1c', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <TriangleAlert size={20} />
+                Development Tools
+              </h3>
+            </div>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px' }}>
+              
+              {/* Reset Tool */}
+              <div style={{ background: '#fef2f2', padding: '20px', borderRadius: '12px', border: '1px solid #fecaca' }}>
+                <h4 style={{ color: '#991b1b', marginBottom: '8px', fontSize: '1.1rem' }}>Danger Zone</h4>
+                <p style={{ color: '#7f1d1d', fontSize: '0.9rem', marginBottom: '16px' }}>
+                  Reset all development data (Users, Pets, Appointments, etc.) and start fresh. Your Admin account will be preserved.
+                </p>
+                <button 
+                  onClick={() => setShowResetModal(true)} 
+                  className="btn" 
+                  style={{ background: '#ef4444', color: 'white', border: 'none', padding: '10px 16px', fontWeight: 600, width: '100%' }}
+                >
+                  Reset Development Data
+                </button>
+              </div>
+
+              {/* Integration Test Checklist */}
+              <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                <h4 style={{ color: '#0f2138', marginBottom: '12px', fontSize: '1.1rem' }}>PetWise Integration Test</h4>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.85rem', color: '#475569' }}>
+                  <label style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}><input type="checkbox" /> Create a clinic.</label>
+                  <label style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}><input type="checkbox" /> Create a Staff account and assign it to the clinic.</label>
+                  <label style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}><input type="checkbox" /> Register a Pet Owner and add a pet.</label>
+                  <label style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}><input type="checkbox" /> Create an appointment for that clinic.</label>
+                  <label style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}><input type="checkbox" /> Log in as Staff, verify appointment visibility.</label>
+                  <label style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}><input type="checkbox" /> Confirm appointment, verify Owner sees status change.</label>
+                </div>
+              </div>
+
+            </div>
+          </section>
+        )}
+
       </div>
+
+      {/* Reset Confirmation Modal */}
+      {showResetModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+          <div style={{ background: 'white', padding: '32px', borderRadius: '16px', maxWidth: '400px', width: '90%', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)' }}>
+            <h2 style={{ color: '#b91c1c', fontSize: '1.5rem', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <TriangleAlert size={24} />
+              Reset all development data?
+            </h2>
+            <p style={{ color: '#475569', fontSize: '0.95rem', marginBottom: '24px', lineHeight: 1.5 }}>
+              This will permanently remove all test users, pets, appointments, clinics, reminders, orders, medical records and activity data stored in this browser. This action cannot be undone.
+            </p>
+            
+            <div style={{ marginBottom: '24px' }}>
+              <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: 600, color: '#334155', marginBottom: '8px' }}>
+                Type <strong>RESET PETWISE</strong> to confirm:
+              </label>
+              <input 
+                type="text" 
+                value={resetConfirmation}
+                onChange={(e) => setResetConfirmation(e.target.value)}
+                placeholder="RESET PETWISE"
+                style={{ width: '100%', padding: '10px', border: '1px solid #cbd5e1', borderRadius: '8px', outline: 'none' }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+              <button 
+                onClick={() => { setShowResetModal(false); setResetConfirmation(''); }}
+                className="btn btn-secondary"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleResetData}
+                disabled={resetConfirmation !== 'RESET PETWISE'}
+                className="btn"
+                style={{ 
+                  background: resetConfirmation === 'RESET PETWISE' ? '#ef4444' : '#fca5a5', 
+                  color: 'white', 
+                  border: 'none', 
+                  padding: '8px 16px', 
+                  fontWeight: 500,
+                  cursor: resetConfirmation === 'RESET PETWISE' ? 'pointer' : 'not-allowed'
+                }}
+              >
+                Reset Development Data
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

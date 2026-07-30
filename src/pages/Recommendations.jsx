@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import TopBar from '../components/TopBar';
 import { getPetById } from '../services/dataService';
 
 function Recommendations() {
@@ -22,35 +21,24 @@ function Recommendations() {
     setLoading(false);
   }, [petId, navigate]);
 
-  if (loading) {
-    return (
-      <div className="app-shell">
-        <TopBar />
-        <main className="page-inner profile-layout"><p>Loading...</p></main>
-      </div>
-    );
-  }
-
+  if (loading) return <p>Loading...</p>;
   if (!pet) return null;
 
   return (
-    <div className="app-shell">
-      <TopBar />
-      <main className="page-inner profile-layout">
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
-          <button className="btn btn-ghost" onClick={() => navigate(`/pets/${pet.id}`)}>← Back to {pet.name}'s Profile</button>
-        </div>
+    <>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
+        <button className="btn btn-ghost" onClick={() => navigate(`/pets/${pet.id}`)}>← Back to {pet.name}'s Profile</button>
+      </div>
 
-        <section className="section-card">
-          <h2>Recommendations for {pet.name}</h2>
-          <p className="eyebrow" style={{ color: '#d43a57', marginBottom: '16px' }}>General frontend demonstration recommendations</p>
-          <div className="empty-state" style={{ padding: '40px 20px', textAlign: 'center' }}>
-            <p>No specific recommendations currently generated for {pet.name}.</p>
-            <p style={{ marginTop: '12px', color: '#64748b' }}>For medical concerns, consult a licensed veterinarian.</p>
-          </div>
-        </section>
-      </main>
-    </div>
+      <section className="section-card">
+        <h2>Recommendations for {pet.name}</h2>
+        <p className="eyebrow" style={{ color: '#d43a57', marginBottom: '16px' }}>General frontend demonstration recommendations</p>
+        <div className="empty-state" style={{ padding: '40px 20px', textAlign: 'center' }}>
+          <p>No specific recommendations currently generated for {pet.name}.</p>
+          <p style={{ marginTop: '12px', color: '#64748b' }}>For medical concerns, consult a licensed veterinarian.</p>
+        </div>
+      </section>
+    </>
   );
 }
 

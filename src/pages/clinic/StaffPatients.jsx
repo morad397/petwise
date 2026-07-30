@@ -46,33 +46,35 @@ function StaffPatients() {
   return (
     <div>
       <div style={{ marginBottom: '32px' }}>
-        <h1 style={{ fontSize: '2rem', marginBottom: '8px' }}>Clinic Patients</h1>
-        <p style={{ color: '#64748b' }}>Pets connected to appointments at your clinic.</p>
+        <h1 style={{ fontSize: '2rem', marginBottom: '8px', color: '#0f2138' }}>Clinic Patients</h1>
+        <p style={{ color: '#64748b', margin: 0 }}>Pets connected to appointments at your clinic.</p>
       </div>
 
-      <div className="pet-cards">
-        {patients.length === 0 ? (
-          <div className="empty-state" style={{ padding: '40px 20px', textAlign: 'center', gridColumn: '1 / -1' }}>
-            <p>No patients have booked appointments at your clinic yet.</p>
-          </div>
-        ) : (
-          patients.map((pet, idx) => (
-            <article key={pet.id || idx} className="pet-card">
-              <div className="pet-card-header">
-                <PetImage pet={pet} style={{ width: 52, height: 52, borderRadius: 18, objectFit: 'cover' }} />
-                <div>
-                  <strong>{pet.name}</strong>
-                  <br />
-                  <small>{pet.species} {pet.breed ? `• ${pet.breed}` : ''}</small>
+      <section className="section-card">
+        <div className="pet-cards">
+          {patients.length === 0 ? (
+            <div className="empty-state" style={{ padding: '60px 20px', textAlign: 'center', gridColumn: '1 / -1' }}>
+              <p>No patients are currently connected to this clinic.</p>
+            </div>
+          ) : (
+            patients.map((pet, idx) => (
+              <article key={pet.id || idx} className="pet-card">
+                <div className="pet-card-header">
+                  <PetImage pet={pet} style={{ width: 52, height: 52, borderRadius: 18, objectFit: 'cover' }} />
+                  <div>
+                    <strong style={{ color: '#0f2138' }}>{pet.name}</strong>
+                    <br />
+                    <small style={{ color: '#64748b' }}>{pet.species} {pet.breed ? `• ${pet.breed}` : ''}</small>
+                  </div>
+                  <button className="btn btn-secondary" onClick={() => alert("Patient summary (Vaccinations, Medications, History) would open here.")}>
+                    View Summary
+                  </button>
                 </div>
-                <button className="btn btn-secondary" onClick={() => alert("Patient summary (Vaccinations, Medications, History) would open here.")}>
-                  View Summary
-                </button>
-              </div>
-            </article>
-          ))
-        )}
-      </div>
+              </article>
+            ))
+          )}
+        </div>
+      </section>
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import { Routes, Route } from 'react-router-dom';
+import { useEffect } from 'react';
 import Homepage from './pages/Homepage';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminLayout from './components/admin/AdminLayout';
@@ -25,6 +26,7 @@ import Community from './pages/Community';
 import AiVet from './pages/AiVet';
 import MyPets from './pages/MyPets';
 import ProtectedRoute from './components/ProtectedRoute';
+import PetOwnerLayout from './components/PetOwnerLayout';
 import StaffLayout from './components/clinic/StaffLayout';
 import StaffOverview from './pages/clinic/StaffOverview';
 import StaffAppointments from './pages/clinic/StaffAppointments';
@@ -33,6 +35,16 @@ import StaffSchedule from './pages/clinic/StaffSchedule';
 import StaffProfile from './pages/clinic/StaffProfile';
 
 function App() {
+  useEffect(() => {
+    if (localStorage.getItem('petwise_fresh_start') !== 'true') {
+      const keys = Object.keys(localStorage);
+      const petwiseKeys = keys.filter(k => k.startsWith('petwise'));
+      petwiseKeys.forEach(k => localStorage.removeItem(k));
+      localStorage.setItem('petwise_fresh_start', 'true');
+      window.location.href = '/register';
+    }
+  }, []);
+
   return (
     <Routes>
       <Route path="/" element={<Homepage />} />
@@ -62,23 +74,27 @@ function App() {
       </Route>
 
       {/* Pet Owner Routes (Protected) */}
-      <Route element={<ProtectedRoute allowedRoles={['PET_OWNER', 'ADMIN', 'CLINIC_STAFF']} />}>
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/pets" element={<MyPets />} />
-        <Route path="/pets/:petId" element={<PetProfile />} />
+      <Route element={<ProtectedRoute allowedRoles={['PET_OWNER', 'ADMIN']} />}>
+        {/* AddPet uses auth-shell, so it doesn't get PetOwnerLayout */}
         <Route path="/add-pet" element={<AddPet />} />
-        <Route path="/pets/:petId/feeding" element={<FeedingSchedule />} />
-        <Route path="/pets/:petId/medical" element={<Vaccinations />} />
-        <Route path="/pets/:petId/vet-visits" element={<VetVisits />} />
-        <Route path="/pets/:petId/weight-habits" element={<WeightHabits />} />
-        <Route path="/pets/:petId/recommendations" element={<Recommendations />} />
-        <Route path="/settings" element={<Settings />} />
-        <Route path="/appointments" element={<Appointments />} />
-        <Route path="/sos" element={<Sos />} />
-        <Route path="/shop" element={<Shop />} />
-        <Route path="/reminders" element={<Reminders />} />
-        <Route path="/community" element={<Community />} />
-        <Route path="/ai-vet" element={<AiVet />} />
+        
+        <Route element={<PetOwnerLayout />}>
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/pets" element={<MyPets />} />
+          <Route path="/pets/:petId" element={<PetProfile />} />
+          <Route path="/pets/:petId/feeding" element={<FeedingSchedule />} />
+          <Route path="/pets/:petId/medical" element={<Vaccinations />} />
+          <Route path="/pets/:petId/vet-visits" element={<VetVisits />} />
+          <Route path="/pets/:petId/weight-habits" element={<WeightHabits />} />
+          <Route path="/pets/:petId/recommendations" element={<Recommendations />} />
+          <Route path="/settings" element={<Settings />} />
+          <Route path="/appointments" element={<Appointments />} />
+          <Route path="/sos" element={<Sos />} />
+          <Route path="/shop" element={<Shop />} />
+          <Route path="/reminders" element={<Reminders />} />
+          <Route path="/community" element={<Community />} />
+          <Route path="/ai-vet" element={<AiVet />} />
+        </Route>
       </Route>
     </Routes>
   );

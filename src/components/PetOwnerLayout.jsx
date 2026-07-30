@@ -1,7 +1,7 @@
-import { Navigate, Outlet } from 'react-router-dom';
-import TopBar from '../TopBar';
+import { Outlet } from 'react-router-dom';
+import TopBar from './TopBar';
 
-export default function AdminLayout() {
+export default function PetOwnerLayout() {
   return (
     <div className="app-shell">
       <TopBar />

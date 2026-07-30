@@ -1,4 +1,4 @@
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { useCart } from '../contexts/CartContext';
 import { 
@@ -25,47 +25,26 @@ export default function TopBar() {
   const navigate = useNavigate();
   const { cart, isCartOpen, toggleCart, removeFromCart } = useCart();
   const [isAdmin, setIsAdmin] = useState(false);
-  const [userName, setUserName] = useState('Admin');
-  const [pets, setPets] = useState([]);
-  const [petName, setPetName] = useState('My Pet');
-  const [petImage, setPetImage] = useState('https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=100&q=80');
+  const [isStaff, setIsStaff] = useState(false);
+  const [userName, setUserName] = useState('User');
   const [isDarkMode, setIsDarkMode] = useState(false);
-  const [isPetMenuOpen, setIsPetMenuOpen] = useState(false);
-  const [activePetIndex, setActivePetIndex] = useState(0);
 
   useEffect(() => {
-    // Check if user is admin
+    // Check if user is admin or staff
     try {
       const user = JSON.parse(localStorage.getItem('petwise-user') || '{}');
-      if (user.role === 'admin') {
+      if (user.role === 'admin' || user.role === 'ADMIN') {
         setIsAdmin(true);
+        if (user.fullName) setUserName(user.fullName);
+      } else if (user.role === 'CLINIC_STAFF') {
+        setIsStaff(true);
+        if (user.fullName) setUserName(user.fullName);
+      } else {
         if (user.fullName) setUserName(user.fullName);
       }
     } catch (e) {
       console.error('Failed to parse user', e);
     }
-
-    const handlePetChange = () => {
-      try {
-        const savedPets = JSON.parse(localStorage.getItem('petwise-pets') || '[]');
-        setPets(savedPets);
-        
-        let index = Number(localStorage.getItem('petwise-active-pet-index') || 0);
-        if (index >= savedPets.length) index = 0;
-        
-        setActivePetIndex(index);
-        
-        if (savedPets.length > 0 && savedPets[index]) {
-          setPetName(savedPets[index].name || 'My Pet');
-          if (savedPets[index].avatar) setPetImage(savedPets[index].avatar);
-        }
-      } catch (e) {
-        console.error('Failed to parse pets', e);
-      }
-    };
-
-    window.addEventListener('pet-changed', handlePetChange);
-    handlePetChange(); // initial load
 
     // Load theme preference
     const savedTheme = localStorage.getItem('petwise-theme');
@@ -73,8 +52,6 @@ export default function TopBar() {
       setIsDarkMode(true);
       document.body.classList.add('dark');
     }
-
-    return () => window.removeEventListener('pet-changed', handlePetChange);
   }, []);
 
   const toggleDarkMode = () => {
@@ -110,22 +87,25 @@ export default function TopBar() {
   const adminNavLinks = [
     { name: 'Overview', path: '/admin', icon: Home },
     { name: 'Users', path: '/admin/users', icon: Users },
+    { name: 'Clinics', path: '/admin/clinics', icon: Home },
     { name: 'Inventory', path: '/admin/inventory', icon: ShoppingBag },
     { name: 'System', path: '/admin/system', icon: Bell },
   ];
 
-  const navLinks = isAdmin ? adminNavLinks : userNavLinks;
+  const staffNavLinks = [
+    { name: 'Overview', path: '/staff', icon: Home },
+    { name: 'Appointments', path: '/staff/appointments', icon: Calendar },
+    { name: 'Patients', path: '/staff/patients', icon: PawPrint },
+    { name: 'Schedule', path: '/staff/schedule', icon: Calendar },
+    { name: 'Profile', path: '/staff/profile', icon: Users },
+  ];
+
+  const navLinks = isAdmin ? adminNavLinks : (isStaff ? staffNavLinks : userNavLinks);
 
   const cartTotal = cart.reduce((total, item) => {
     const priceNum = parseFloat(item.price.replace('$', ''));
     return total + (priceNum * item.quantity);
   }, 0);
-
-  const selectPet = (index) => {
-    localStorage.setItem('petwise-active-pet-index', index);
-    window.dispatchEvent(new Event('pet-changed'));
-    setIsPetMenuOpen(false);
-  };
 
   return (
     <header className="page-topbar">
@@ -139,22 +119,26 @@ export default function TopBar() {
       <nav className="main-nav-new">
         {navLinks.map((link) => {
           const Icon = link.icon;
-          const isActive = location.pathname === link.path;
           return (
-            <Link 
+            <NavLink 
               key={link.name} 
               to={link.path} 
-              className={`nav-item ${isActive ? 'active' : ''} ${link.isDanger ? 'danger' : ''}`}
+              end={link.path === '/admin' || link.path === '/staff'}
+              className={({ isActive }) => `nav-item ${isActive ? 'active' : ''} ${link.isDanger ? 'danger' : ''}`}
             >
               <Icon size={18} />
               <span>{link.name}</span>
-            </Link>
+            </NavLink>
           );
         })}
       </nav>
 
       <div className="topbar-actions">
-        {!isAdmin && (
+        <button className="icon-btn" onClick={toggleDarkMode} title="Toggle Theme">
+          {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
+        </button>
+
+        {!(isAdmin || isStaff) && (
           <div style={{ position: 'relative' }}>
             <button className="icon-btn" onClick={toggleCart}>
               <ShoppingCart size={20} />
@@ -201,14 +185,9 @@ export default function TopBar() {
           </div>
         )}
 
-        <button className="icon-btn" onClick={toggleDarkMode}>
-          {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
-        </button>
-        <button className="icon-btn" onClick={handleLogout} title="Logout">
+        <button className="icon-btn" onClick={handleLogout} title="Logout" style={{ color: '#d43a57' }}>
           <LogOut size={20} />
         </button>
-        
-        {/* Pet selector (user pill) has been completely removed per user request */}
       </div>
     </header>
   );

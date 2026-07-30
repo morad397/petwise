@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import TopBar from '../components/TopBar';
 import AppointmentForm from '../components/appointments/AppointmentForm';
 import StatusBadge from '../components/admin/StatusBadge';
 import ConfirmationModal from '../components/admin/ConfirmationModal';
@@ -84,10 +83,7 @@ function Appointments() {
   };
 
   return (
-    <div className="app-shell">
-      <TopBar />
-
-      <main className="page-inner dashboard-layout">
+    <>
         {!isFormOpen ? (
           <>
             <section className="section-card hero-panel dashboard-hero" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
@@ -152,8 +148,6 @@ function Appointments() {
             onCancel={() => setIsFormOpen(false)}
           />
         )}
-      </main>
-
       <ConfirmationModal 
         isOpen={isCancelModalOpen}
         title="Cancel Appointment"
@@ -163,7 +157,7 @@ function Appointments() {
         onConfirm={confirmCancel}
         onCancel={() => setIsCancelModalOpen(false)}
       />
-    </div>
+    </>
   );
 }
 

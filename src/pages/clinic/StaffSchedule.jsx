@@ -29,47 +29,49 @@ function StaffSchedule() {
   return (
     <div>
       <div style={{ marginBottom: '32px' }}>
-        <h1 style={{ fontSize: '2rem', marginBottom: '8px' }}>Clinic Schedule</h1>
-        <p style={{ color: '#64748b' }}>Manage your daily working hours and time slots.</p>
+        <h1 style={{ fontSize: '2rem', marginBottom: '8px', color: '#0f2138' }}>Clinic Schedule</h1>
+        <p style={{ color: '#64748b', margin: 0 }}>Manage your daily working hours and time slots.</p>
       </div>
 
-      <section className="admin-card">
-        <div className="admin-card-header">
-          <h2>Today's Time Slots</h2>
+      <section className="section-card" style={{ padding: 0 }}>
+        <div style={{ padding: '24px 24px 16px 24px' }}>
+          <h2 style={{ fontSize: '1.25rem', color: '#0f2138', margin: 0 }}>Today's Time Slots</h2>
         </div>
         
-        <table className="admin-table">
-          <thead>
-            <tr>
-              <th>Time</th>
-              <th>Status</th>
-              <th>Details</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {slots.map((slot, idx) => (
-              <tr key={idx}>
-                <td style={{ fontWeight: 500 }}>{slot.time}</td>
-                <td>
-                  <span className={`status-pill status-${slot.status.toLowerCase()}`}>
-                    {slot.status}
-                  </span>
-                </td>
-                <td>{slot.details || '—'}</td>
-                <td>
-                  <button 
-                    className="btn btn-secondary" 
-                    onClick={() => toggleSlot(idx)}
-                    style={{ padding: '4px 8px', fontSize: '0.8rem' }}
-                  >
-                    {slot.status === 'AVAILABLE' ? 'Block Slot' : slot.status === 'BLOCKED' ? 'Reopen Slot' : 'View'}
-                  </button>
-                </td>
+        <div style={{ overflowX: 'auto' }}>
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th>Time</th>
+                <th>Status</th>
+                <th>Details</th>
+                <th>Actions</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {slots.map((slot, idx) => (
+                <tr key={idx}>
+                  <td style={{ fontWeight: 500, color: '#0f2138' }}>{slot.time}</td>
+                  <td>
+                    <span className={`status-pill status-${slot.status.toLowerCase()}`}>
+                      {slot.status}
+                    </span>
+                  </td>
+                  <td style={{ color: '#64748b' }}>{slot.details || '—'}</td>
+                  <td>
+                    <button 
+                      className="btn btn-secondary" 
+                      onClick={() => toggleSlot(idx)}
+                      style={{ padding: '6px 12px', fontSize: '0.8rem' }}
+                    >
+                      {slot.status === 'AVAILABLE' ? 'Block Slot' : slot.status === 'BLOCKED' ? 'Reopen Slot' : 'View'}
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </section>
     </div>
   );

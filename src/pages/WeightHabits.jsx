@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import TopBar from '../components/TopBar';
 import { getPetById } from '../services/dataService';
 
 function WeightHabits() {
@@ -22,44 +21,33 @@ function WeightHabits() {
     setLoading(false);
   }, [petId, navigate]);
 
-  if (loading) {
-    return (
-      <div className="app-shell">
-        <TopBar />
-        <main className="page-inner profile-layout"><p>Loading...</p></main>
-      </div>
-    );
-  }
-
+  if (loading) return <p>Loading...</p>;
   if (!pet) return null;
 
   return (
-    <div className="app-shell">
-      <TopBar />
-      <main className="page-inner profile-layout">
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
-          <button className="btn btn-ghost" onClick={() => navigate(`/pets/${pet.id}`)}>← Back to {pet.name}'s Profile</button>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <button className="btn btn-primary">Add Weight Entry</button>
-            <button className="btn btn-secondary">Add Habit</button>
-          </div>
+    <>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
+        <button className="btn btn-ghost" onClick={() => navigate(`/pets/${pet.id}`)}>← Back to {pet.name}'s Profile</button>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button className="btn btn-primary">Add Weight Entry</button>
+          <button className="btn btn-secondary">Add Habit</button>
         </div>
+      </div>
 
-        <section className="section-card">
-          <h2>Weight Tracker for {pet.name}</h2>
-          <div className="empty-state" style={{ padding: '40px 20px', textAlign: 'center' }}>
-            <p>No weight entries added for {pet.name}. Current weight: {pet.weight || 'Unknown'}</p>
-          </div>
-        </section>
+      <section className="section-card">
+        <h2>Weight Tracker for {pet.name}</h2>
+        <div className="empty-state" style={{ padding: '40px 20px', textAlign: 'center' }}>
+          <p>No weight entries added for {pet.name}. Current weight: {pet.weight || 'Unknown'}</p>
+        </div>
+      </section>
 
-        <section className="section-card">
-          <h2>Habits & Activity for {pet.name}</h2>
-          <div className="empty-state" style={{ padding: '40px 20px', textAlign: 'center' }}>
-            <p>No habits added for {pet.name}.</p>
-          </div>
-        </section>
-      </main>
-    </div>
+      <section className="section-card">
+        <h2>Habits &amp; Activity for {pet.name}</h2>
+        <div className="empty-state" style={{ padding: '40px 20px', textAlign: 'center' }}>
+          <p>No habits added for {pet.name}.</p>
+        </div>
+      </section>
+    </>
   );
 }
 

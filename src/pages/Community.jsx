@@ -1,56 +1,92 @@
-import { Link } from 'react-router-dom';
-import TopBar from '../components/TopBar';
+import React, { useState, useEffect } from 'react';
+import { getPosts } from '../services/communityService';
+import { getPetsByOwnerId } from '../services/dataService';
 
-const posts = [
-  {
-    title: 'Petwise has completely changed how I care for Luna!',
-    author: 'Sarah Jenkins',
-    detail: 'I used to forget vet appointments and lose track of vaccinations. Having everything in one beautiful dashboard gives me so much peace of mind.',
-  },
-  {
-    title: 'The AI Vet feature is a lifesaver',
-    author: 'Mark Davis',
-    detail: 'When my cat started acting strange at 2 AM, the AI Vet gave me immediate advice on what to check for and whether it was an emergency. Absolutely brilliant!',
-  },
-  {
-    title: 'Best pet management app out there',
-    author: 'Emily R.',
-    detail: 'The dark mode is stunning, the shop has amazing curated items, and the whole app is just so easy to use. I recommend Petwise to every pet owner I know.',
-  },
-  {
-    title: 'Finally, an app that looks good and works perfectly',
-    author: 'James T.',
-    detail: 'Most pet apps look like they were built in 2010. Petwise feels premium, runs incredibly fast, and actually helps me keep my dogs healthier.',
-  }
-];
+// Subcomponents
+import CommunityStories from '../components/community/CommunityStories';
+import CreatePost from '../components/community/CreatePost';
+import CommunityFeed from '../components/community/CommunityFeed';
+import TrendingTopics from '../components/community/TrendingTopics';
+import SuggestedGroups from '../components/community/SuggestedGroups';
+import SuggestedFriends from '../components/community/SuggestedFriends';
 
-function Community() {
-  return (
-    <div className="app-shell">
-      <TopBar />
+export default function Community() {
+  const [currentUser, setCurrentUser] = useState(null);
+  const [users, setUsers] = useState([]);
+  const [userPets, setUserPets] = useState([]);
+  
+  const [posts, setPosts] = useState([]);
+  const [activeFilter, setActiveFilter] = useState('');
 
-      <main className="page-inner dashboard-layout">
-        <section className="section-card hero-panel dashboard-hero">
-          <div>
-            <p className="eyebrow">Community</p>
-            <h1>What people are saying</h1>
-            <p>Read testimonials and feedback from pet owners who use Petwise every day to care for their furry family members.</p>
-          </div>
-        </section>
+  useEffect(() => {
+    // Load users and current user
+    const savedUser = JSON.parse(localStorage.getItem('petwise-user') || '{}');
+    const allUsers = JSON.parse(localStorage.getItem('petwise-users') || '[]');
+    setCurrentUser(savedUser);
+    setUsers(allUsers);
 
-        <section className="community-grid">
-          {posts.map((post) => (
-            <article key={post.title} className="mini-card appointment-card">
-              <span className="eyebrow">App Review</span>
-              <h3>{post.title}</h3>
-              <p>{post.detail}</p>
-              <strong>{post.author}</strong>
-            </article>
-          ))}
-        </section>
-      </main>
-    </div>
+    // Load pets for this user
+    if (savedUser.id) {
+      setUserPets(getPetsByOwnerId(savedUser.id));
+    }
+
+    refreshPosts();
+  }, []);
+
+  const refreshPosts = () => {
+    setPosts(getPosts());
+  };
+
+  if (!currentUser?.id) {
+    return (
+      <>
+          <p>Please log in to view the community.</p>
+        </>
   );
 }
 
-export default Community;
+  return (
+    <>
+      <div style={{ background: '#f8fafc', minHeight: '100vh', padding: '24px' }}>
+        
+        <div style={{ maxWidth: '1200px', margin: '0 auto', width: '100%' }}>
+          <h1 style={{ fontSize: '1.8rem', color: '#0f2138', marginBottom: '24px' }}>PetWise Community</h1>
+          
+          <div className="community-layout">
+            
+            {/* LEFT COLUMN */}
+            <div className="community-main">
+              <CommunityStories currentUser={currentUser} users={users} />
+              
+              <CreatePost 
+                currentUser={currentUser} 
+                userPets={userPets} 
+                onPostCreated={refreshPosts} 
+              />
+              
+              <CommunityFeed 
+                posts={posts} 
+                currentUser={currentUser} 
+                users={users} 
+                onPostDeleted={refreshPosts}
+                activeFilter={activeFilter}
+                clearFilter={() => setActiveFilter('')}
+              />
+            </div>
+
+            {/* RIGHT COLUMN */}
+            <div className="community-sidebar">
+              <TrendingTopics 
+                posts={posts} 
+                activeFilter={activeFilter} 
+                onHashtagClick={setActiveFilter} 
+              />
+              <SuggestedGroups currentUser={currentUser} />
+              <SuggestedFriends currentUser={currentUser} />
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}

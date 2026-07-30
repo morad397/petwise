@@ -6,18 +6,17 @@ function Login() {
   const [form, setForm] = useState({
     email: '',
     password: '',
-    role: '',
-    fullName: '',
   });
+  const [errors, setErrors] = useState({});
 
   useEffect(() => {
     const savedUser = JSON.parse(localStorage.getItem('petwise-user') || '{}');
-    setForm((current) => ({
-      ...current,
-      email: savedUser.email || '',
-      fullName: savedUser.fullName || '',
-      role: savedUser.role || '',
-    }));
+    if (savedUser.email) {
+      setForm((current) => ({
+        ...current,
+        email: savedUser.email,
+      }));
+    }
   }, []);
 
   function handleChange(event) {
@@ -25,20 +24,18 @@ function Login() {
     setForm((current) => ({ ...current, [name]: value }));
   }
 
-  const [errors, setErrors] = useState({});
-
   function handleSubmit(event) {
     event.preventDefault();
     
     let newErrors = {};
     if (!form.email && !form.password) {
-      newErrors.general = 'something wrong try again';
-      newErrors.email = 'email not right';
-      newErrors.password = 'password is not right';
+      newErrors.general = 'Please fill out all fields.';
+      newErrors.email = 'Email is required';
+      newErrors.password = 'Password is required';
     } else if (!form.email) {
-      newErrors.email = 'email not right';
+      newErrors.email = 'Email is required';
     } else if (!form.password) {
-      newErrors.password = 'password is not right';
+      newErrors.password = 'Password is required';
     }
 
     if (Object.keys(newErrors).length > 0) {
@@ -47,23 +44,42 @@ function Login() {
     }
     setErrors({});
 
-    const savedUser = JSON.parse(localStorage.getItem('petwise-user') || '{}');
-
-    const nextUser = {
-      ...savedUser,
-      email: form.email,
-      role: form.role,
-      fullName: form.fullName || savedUser.fullName || 'Pet Owner',
-    };
-
-    localStorage.setItem('petwise-user', JSON.stringify(nextUser));
+    const normalizedEmail = form.email.trim().toLowerCase();
+    const usersStr = localStorage.getItem('petwise-users');
+    const users = usersStr ? JSON.parse(usersStr) : [];
     
-    if (form.role === 'admin' || form.role === 'ADMIN') {
-      navigate('/admin');
-    } else if (form.role === 'CLINIC_STAFF') {
-      navigate('/staff');
-    } else {
-      navigate('/dashboard');
+    const existingUser = users.find(u => u.email === normalizedEmail);
+
+    if (!existingUser) {
+      setErrors({ general: 'Invalid email or password.' });
+      return;
+    }
+
+    // In a real app, we'd verify form.password here.
+
+    // Set canonical session
+    localStorage.setItem('petwise-user', JSON.stringify(existingUser));
+    
+    // Role-based routing as requested
+    switch (existingUser.role) {
+      case "ADMIN":
+        navigate("/admin", { replace: true });
+        break;
+
+      case "CLINIC_STAFF":
+        if (!existingUser.clinicId) {
+          navigate("/staff/profile", { replace: true });
+        } else {
+          navigate("/staff", { replace: true });
+        }
+        break;
+
+      case "PET_OWNER":
+        navigate("/dashboard", { replace: true });
+        break;
+
+      default:
+        setErrors({ general: 'This account has an invalid role.' });
     }
   }
 
@@ -91,11 +107,6 @@ function Login() {
 
           <form className="form-card" onSubmit={handleSubmit}>
             <label className="form-group">
-              <span>Full Name</span>
-              <input type="text" name="fullName" value={form.fullName} onChange={handleChange} placeholder="Enter your full name" />
-            </label>
-
-            <label className="form-group">
               <span>Email</span>
               <input type="email" name="email" value={form.email} onChange={handleChange} placeholder="you@example.com" style={errors.email ? {borderColor: '#ff5a79'} : {}} />
               {errors.email && <span style={{color: '#ff5a79', fontSize: '0.85rem', marginTop: '4px', display: 'block'}}>{errors.email}</span>}
@@ -105,16 +116,6 @@ function Login() {
               <span>Password</span>
               <input type="password" name="password" value={form.password} onChange={handleChange} placeholder="Enter your password" style={errors.password ? {borderColor: '#ff5a79'} : {}} />
               {errors.password && <span style={{color: '#ff5a79', fontSize: '0.85rem', marginTop: '4px', display: 'block'}}>{errors.password}</span>}
-            </label>
-
-            <label className="form-group">
-              <span>Login as</span>
-              <select name="role" value={form.role} onChange={handleChange}>
-                <option value="">Select role</option>
-                <option value="owner">Pet Owner</option>
-                <option value="CLINIC_STAFF">Clinic Staff</option>
-                <option value="admin">Admin</option>
-              </select>
             </label>
 
             <button type="submit" className="btn btn-primary btn-full">Log In</button>

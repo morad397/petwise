@@ -13,10 +13,16 @@ const DEFAULT_CLINICS = [
     id: 'clinic-1',
     name: 'Downtown Vet Center',
     address: '123 Main St, Cityville',
+    city: 'Cityville',
     phone: '555-0101',
     email: 'contact@downtownvet.com',
     status: 'ACTIVE',
-    openingHours: { start: '09:00', end: '17:00' }, // Simplified for mock
+    isEmergencyClinic: true,
+    isOpen24Hours: true,
+    latitude: 40.7128,
+    longitude: -74.0060,
+    emergencyServices: ['Trauma', 'Surgery', 'Oxygen'],
+    openingHours: { start: '00:00', end: '23:59' }, // Simplified for mock
     serviceIds: ['Vet Consultation', 'Vaccination', 'Dental Checkup'],
     staffIds: [],
     appointmentDurationMinutes: 30
@@ -25,9 +31,11 @@ const DEFAULT_CLINICS = [
     id: 'clinic-2',
     name: 'Happy Paws Grooming & Care',
     address: '456 Oak Rd, Townsville',
+    city: 'Townsville',
     phone: '555-0202',
     email: 'hello@happypaws.com',
     status: 'ACTIVE',
+    isEmergencyClinic: false,
     openingHours: { start: '08:00', end: '18:00' },
     serviceIds: ['Grooming', 'Vet Consultation'],
     staffIds: [],
@@ -58,39 +66,30 @@ const migrateLegacyPets = () => {
   let changed = false;
 
   let currentUser = JSON.parse(localStorage.getItem('petwise-user') || '{}');
-  
-  if (currentUser.email && !currentUser.id) {
-    currentUser.id = Date.now().toString();
-    localStorage.setItem('petwise-user', JSON.stringify(currentUser));
-  }
+  const fallbackOwnerId = currentUser.id || 'unknown_owner';
 
   const updatedPets = pets.map(pet => {
-    let modifiedPet = { ...pet };
+    let modified = { ...pet };
+    let hasChanges = false;
     
-    // Normalize image fields
-    const legacyImage = modifiedPet.imageUrl || modifiedPet.image || modifiedPet.photo || modifiedPet.avatarUrl || modifiedPet.petImage || '';
-    
-    // Remove blob URLs
-    if (legacyImage && legacyImage.startsWith('blob:')) {
-      modifiedPet.imageUrl = '';
-      changed = true;
-    } else if (legacyImage !== modifiedPet.imageUrl) {
-      modifiedPet.imageUrl = legacyImage;
-      changed = true;
-    }
-
-    // Ownership migration (from v1)
-    if (!modifiedPet.ownerId) {
-      changed = true;
-      if (!modifiedPet.ownerEmail || modifiedPet.ownerEmail === currentUser.email) {
-        modifiedPet.ownerId = currentUser.id || 'unassigned';
-        modifiedPet.id = modifiedPet.id || Date.now().toString();
-      } else {
-        modifiedPet.id = modifiedPet.id || Date.now().toString();
-      }
+    if (modified.imageUrl && !modified.avatar) {
+      modified.avatar = modified.imageUrl;
+      delete modified.imageUrl;
+      hasChanges = true;
     }
     
-    return modifiedPet;
+    if (modified.breed && !modified.type) {
+      modified.type = 'Dog'; // Guessing
+      hasChanges = true;
+    }
+    
+    if (!modified.ownerId) {
+      modified.ownerId = fallbackOwnerId;
+      hasChanges = true;
+    }
+    
+    if (hasChanges) changed = true;
+    return modified;
   });
 
   if (changed) {
@@ -100,11 +99,124 @@ const migrateLegacyPets = () => {
   localStorage.setItem('petwise_pet_image_migration_v2', 'true');
 };
 
+const migrateLegacyAppointments = () => {
+  const isMigrated = localStorage.getItem('petwise_appointment_migration_v1');
+  if (isMigrated === 'true') return;
+
+  const appointments = readDB(DB_KEYS.APPOINTMENTS);
+  const pets = readDB(DB_KEYS.PETS);
+  
+  let changed = false;
+
+  const updatedAppointments = appointments.map(app => {
+    let modifiedApp = { ...app };
+    if (!modifiedApp.petId) {
+      if (modifiedApp.patientName) {
+        const foundPet = pets.find(p => p.name === modifiedApp.patientName);
+        if (foundPet) {
+          modifiedApp.petId = foundPet.id;
+          changed = true;
+        }
+      }
+    }
+    return modifiedApp;
+  });
+
+  if (changed) {
+    writeDB(DB_KEYS.APPOINTMENTS, updatedAppointments);
+  }
+
+  localStorage.setItem('petwise_appointment_migration_v1', 'true');
+};
+
 // --- Initialization ---
+const DEMO_CLINICS = [
+  {
+    id: 'demo-clinic-1',
+    name: 'PetWise Central Veterinary Clinic',
+    city: 'Tiberias',
+    address: 'Demo location — Tiberias',
+    phone: '1-800-PETWISE',
+    status: 'ACTIVE',
+    isDemo: true,
+    appointmentDurationMinutes: 30,
+    openingHours: [
+      { dayOfWeek: 0, isOpen: true, openTime: '08:00', closeTime: '18:00' },
+      { dayOfWeek: 1, isOpen: true, openTime: '08:00', closeTime: '18:00' },
+      { dayOfWeek: 2, isOpen: true, openTime: '08:00', closeTime: '18:00' },
+      { dayOfWeek: 3, isOpen: true, openTime: '08:00', closeTime: '18:00' },
+      { dayOfWeek: 4, isOpen: true, openTime: '08:00', closeTime: '18:00' },
+      { dayOfWeek: 5, isOpen: false },
+      { dayOfWeek: 6, isOpen: false }
+    ],
+    services: ['General Checkup', 'Vaccination', 'Dental Care', 'Health Follow-up', 'Emergency Consultation'],
+    serviceIds: ['General Checkup', 'Vaccination', 'Dental Care', 'Health Follow-up', 'Emergency Consultation'],
+    staffIds: [],
+    isEmergencyClinic: true,
+    isOpen24Hours: false,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  },
+  {
+    id: 'demo-clinic-2',
+    name: 'Lake Veterinary Center',
+    city: 'Kinneret Area',
+    address: 'Demo location — Kinneret Area',
+    status: 'ACTIVE',
+    isDemo: true,
+    appointmentDurationMinutes: 30,
+    openingHours: [
+      { dayOfWeek: 0, isOpen: true, openTime: '09:00', closeTime: '17:00' },
+      { dayOfWeek: 1, isOpen: true, openTime: '09:00', closeTime: '17:00' },
+      { dayOfWeek: 2, isOpen: true, openTime: '09:00', closeTime: '17:00' },
+      { dayOfWeek: 3, isOpen: true, openTime: '09:00', closeTime: '17:00' },
+      { dayOfWeek: 4, isOpen: true, openTime: '09:00', closeTime: '17:00' },
+      { dayOfWeek: 5, isOpen: true, openTime: '09:00', closeTime: '17:00' },
+      { dayOfWeek: 6, isOpen: false }
+    ],
+    services: ['General Checkup', 'Vaccination', 'Grooming Consultation', 'Nutrition Consultation'],
+    serviceIds: ['General Checkup', 'Vaccination', 'Grooming Consultation', 'Nutrition Consultation'],
+    staffIds: [],
+    isEmergencyClinic: false,
+    isOpen24Hours: false,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  },
+  {
+    id: 'demo-clinic-3',
+    name: 'North Pet Care Clinic',
+    city: 'Nazareth',
+    address: 'Demo location — Nazareth',
+    status: 'ACTIVE',
+    isDemo: true,
+    appointmentDurationMinutes: 45,
+    openingHours: [
+      { dayOfWeek: 0, isOpen: false },
+      { dayOfWeek: 1, isOpen: true, openTime: '08:30', closeTime: '19:00' },
+      { dayOfWeek: 2, isOpen: true, openTime: '08:30', closeTime: '19:00' },
+      { dayOfWeek: 3, isOpen: true, openTime: '08:30', closeTime: '19:00' },
+      { dayOfWeek: 4, isOpen: true, openTime: '08:30', closeTime: '19:00' },
+      { dayOfWeek: 5, isOpen: true, openTime: '08:30', closeTime: '19:00' },
+      { dayOfWeek: 6, isOpen: true, openTime: '08:30', closeTime: '19:00' }
+    ],
+    services: ['General Checkup', 'Vaccination', 'Health Follow-up', 'Dental Care'],
+    serviceIds: ['General Checkup', 'Vaccination', 'Health Follow-up', 'Dental Care'],
+    staffIds: [],
+    isEmergencyClinic: false,
+    isOpen24Hours: false,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  }
+];
+
 export const initializeDB = () => {
+  const isReset = localStorage.getItem('petwise_development_reset_completed');
+
   const clinics = readDB(DB_KEYS.CLINICS);
-  if (!clinics || clinics.length === 0) {
-    writeDB(DB_KEYS.CLINICS, DEFAULT_CLINICS);
+  const CLINIC_SEED_VERSION = "petwise_demo_clinics_v1";
+  if (!localStorage.getItem(CLINIC_SEED_VERSION) && clinics.length === 0) {
+    writeDB(DB_KEYS.CLINICS, DEMO_CLINICS);
+    localStorage.setItem(CLINIC_SEED_VERSION, "completed");
   }
   
   // Ensure appointments exist
@@ -113,10 +225,61 @@ export const initializeDB = () => {
     writeDB(DB_KEYS.APPOINTMENTS, []);
   }
 
-  migrateLegacyPets();
+  if (isReset !== 'true') {
+    migrateLegacyPets();
+    migrateLegacyAppointments();
+  }
 };
 
-// --- Pets ---
+// --- Reset ---
+export const resetDevelopmentData = (preserveAdminId) => {
+  const users = readDB(DB_KEYS.USERS) || [];
+  const remainingUsers = users.filter(user => String(user.id) === String(preserveAdminId));
+  
+  const PETWISE_RESET_KEYS = [
+    "petwise-users",
+    "petwise-pets",
+    "petwise-appointments",
+    "petwise-inventory",
+    "petwise-cart",
+    "petwise-reminders",
+    "petwise-orders",
+    "petwise-medical_records",
+    "petwise-vet_visits",
+    "petwise-feeding_records",
+    "petwise-weight_records",
+    "petwise-habits",
+    "petwise-community_posts",
+    "petwise-notifications",
+    "petwise-activity_logs",
+    "petwise-active-pet-index",
+    "petwise_pet_image_migration_v2",
+    "petwise_appointment_migration_v1",
+    // New Community Keys
+    "petwise-community-posts",
+    "petwise-community-comments",
+    "petwise-community-stories",
+    "petwise-community-groups",
+    "petwise-community-follows",
+    "petwise-community-reports",
+    "petwise-community-hidden",
+    // Emergency Keys
+    "petwise-emergency-settings",
+    "petwise-emergency-guides"
+  ];
+  
+  PETWISE_RESET_KEYS.forEach(key => localStorage.removeItem(key));
+  
+  if (remainingUsers.length > 0) {
+    writeDB(DB_KEYS.USERS, remainingUsers);
+  }
+  
+  localStorage.setItem('petwise_development_reset_completed', 'true');
+  initializeDB();
+  return true;
+};
+
+// --- Exports ---
 export const getPetsByOwnerId = (ownerId) => {
   const pets = readDB(DB_KEYS.PETS);
   return pets.filter(pet => String(pet.ownerId) === String(ownerId));
@@ -231,11 +394,43 @@ export const deleteAppointment = (appointmentId) => {
 
 // --- Availability ---
 export const getAvailableSlots = (clinicId, date) => {
+  if (!clinicId) return { status: "CLINIC_NOT_SELECTED", slots: [] };
+  if (!date) return { status: "DATE_NOT_SELECTED", slots: [] };
+
   const clinic = getClinicById(clinicId);
-  if (!clinic) return [];
+  if (!clinic) return { status: "CLINIC_NOT_SELECTED", slots: [] };
   
-  const { start, end } = clinic.openingHours;
-  const duration = clinic.appointmentDurationMinutes;
+  // Convert local date to local dayOfWeek (0 = Sunday, 1 = Monday...)
+  const dateObj = new Date(date + 'T00:00:00'); // Parse explicitly in local time assuming YYYY-MM-DD
+  let dayOfWeek = dateObj.getDay();
+  // Handle invalid dates
+  if (isNaN(dayOfWeek)) {
+    return { status: "DATE_NOT_SELECTED", slots: [] };
+  }
+
+  // Handle old clinics that use `start` and `end` on the top level object
+  // If openingHours is not the array structure, use fallback
+  let daySchedule = null;
+  let isLegacy = false;
+  if (Array.isArray(clinic.openingHours) && clinic.openingHours.length > 0 && typeof clinic.openingHours[0] === 'object') {
+    daySchedule = clinic.openingHours.find(h => Number(h.dayOfWeek) === Number(dayOfWeek));
+  } else if (clinic.openingHours && clinic.openingHours.start && clinic.openingHours.end) {
+    // Legacy clinic
+    isLegacy = true;
+    daySchedule = {
+      isOpen: true,
+      openTime: clinic.openingHours.start,
+      closeTime: clinic.openingHours.end
+    };
+  }
+
+  if (!daySchedule || !daySchedule.isOpen) {
+    return { status: "CLINIC_CLOSED", slots: [] };
+  }
+  
+  const start = daySchedule.openTime;
+  const end = daySchedule.closeTime;
+  const duration = clinic.appointmentDurationMinutes || 30;
   
   // Create all possible slots
   const slots = [];
@@ -244,9 +439,19 @@ export const getAvailableSlots = (clinicId, date) => {
   
   const endTotalMins = endHour * 60 + endMin;
   
+  // Determine if selected date is today to block past slots
+  const todayStr = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
+  const isToday = (date === todayStr);
+  const currentNowMins = new Date().getHours() * 60 + new Date().getMinutes();
+
   while (currentHour * 60 + currentMin + duration <= endTotalMins) {
     const timeStr = `${currentHour.toString().padStart(2, '0')}:${currentMin.toString().padStart(2, '0')}`;
-    slots.push(timeStr);
+    const slotMins = currentHour * 60 + currentMin;
+
+    // Filter out past slots if today
+    if (!(isToday && slotMins <= currentNowMins)) {
+      slots.push(timeStr);
+    }
     
     currentMin += duration;
     if (currentMin >= 60) {
@@ -262,5 +467,11 @@ export const getAvailableSlots = (clinicId, date) => {
     .map(apt => apt.appointmentTime);
     
   // Return slots that are NOT booked
-  return slots.filter(slot => !bookedTimes.includes(slot));
+  const availableSlots = slots.filter(slot => !bookedTimes.includes(slot));
+
+  if (availableSlots.length === 0) {
+    return { status: "FULLY_BOOKED", slots: [] };
+  }
+
+  return { status: "AVAILABLE", slots: availableSlots };
 };

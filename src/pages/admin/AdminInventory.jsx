@@ -35,8 +35,9 @@ export default function AdminInventory() {
   const [editProductData, setEditProductData] = useState(null);
 
   useEffect(() => {
-    const saved = JSON.parse(localStorage.getItem('petwise-inventory') || '[]');
-    if (saved.length === 0) {
+    const savedStr = localStorage.getItem('petwise-inventory');
+    const saved = JSON.parse(savedStr || '[]');
+    if (!savedStr) {
       localStorage.setItem('petwise-inventory', JSON.stringify(DEFAULT_INVENTORY));
       setProducts(DEFAULT_INVENTORY);
     } else {

@@ -10,10 +10,7 @@ const aiTips = [
 
 function AiVet() {
   return (
-    <div className="app-shell">
-      <TopBar />
-
-      <main className="page-inner dashboard-layout">
+    <>
         <section className="section-card hero-panel dashboard-hero">
           <div>
             <p className="eyebrow">AI Vet</p>
@@ -31,8 +28,7 @@ function AiVet() {
             </article>
           ))}
         </section>
-      </main>
-    </div>
+      </>
   );
 }
 
