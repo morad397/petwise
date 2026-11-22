@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { login, homePathForRole } from '../services/authService';
 
 function Login() {
   const navigate = useNavigate();
@@ -8,6 +9,7 @@ function Login() {
     password: '',
   });
   const [errors, setErrors] = useState({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     const savedUser = JSON.parse(localStorage.getItem('petwise-user') || '{}');
@@ -24,7 +26,7 @@ function Login() {
     setForm((current) => ({ ...current, [name]: value }));
   }
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault();
     
     let newErrors = {};
@@ -44,42 +46,15 @@ function Login() {
     }
     setErrors({});
 
-    const normalizedEmail = form.email.trim().toLowerCase();
-    const usersStr = localStorage.getItem('petwise-users');
-    const users = usersStr ? JSON.parse(usersStr) : [];
-    
-    const existingUser = users.find(u => u.email === normalizedEmail);
-
-    if (!existingUser) {
-      setErrors({ general: 'Invalid email or password.' });
-      return;
-    }
-
-    // In a real app, we'd verify form.password here.
-
-    // Set canonical session
-    localStorage.setItem('petwise-user', JSON.stringify(existingUser));
-    
-    // Role-based routing as requested
-    switch (existingUser.role) {
-      case "ADMIN":
-        navigate("/admin", { replace: true });
-        break;
-
-      case "CLINIC_STAFF":
-        if (!existingUser.clinicId) {
-          navigate("/staff/profile", { replace: true });
-        } else {
-          navigate("/staff", { replace: true });
-        }
-        break;
-
-      case "PET_OWNER":
-        navigate("/dashboard", { replace: true });
-        break;
-
-      default:
-        setErrors({ general: 'This account has an invalid role.' });
+    setIsSubmitting(true);
+    try {
+      // The server checks the password and returns the user with their role.
+      const user = await login(form.email.trim().toLowerCase(), form.password);
+      navigate(homePathForRole(user), { replace: true });
+    } catch (error) {
+      setErrors({ general: error.message });
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
@@ -118,7 +93,9 @@ function Login() {
               {errors.password && <span style={{color: '#ff5a79', fontSize: '0.85rem', marginTop: '4px', display: 'block'}}>{errors.password}</span>}
             </label>
 
-            <button type="submit" className="btn btn-primary btn-full">Log In</button>
+            <button type="submit" className="btn btn-primary btn-full" disabled={isSubmitting}>
+              {isSubmitting ? 'Logging in…' : 'Log In'}
+            </button>
           </form>
 
           <p className="auth-link-row">

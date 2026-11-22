@@ -1,54 +1,52 @@
+import { useEffect, useState } from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
+import { fetchMe, getToken, logout, homePathForRole } from '../services/authService';
 
 export default function ProtectedRoute({ allowedRoles }) {
-  // Read current session
-  let sessionUser = JSON.parse(localStorage.getItem('petwise-user') || '{}');
-  
-  if (!sessionUser.id && !sessionUser.email) {
+  const token = getToken();
+  // 'loading' | 'ok' | 'unauthenticated'
+  const [state, setState] = useState(token ? 'loading' : 'unauthenticated');
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    if (!token) return;
+    let cancelled = false;
+
+    // Don't trust the role saved in the browser: ask the server who this token belongs to.
+    // If an admin changed the role or suspended the account, the server's answer wins.
+    fetchMe()
+      .then((freshUser) => {
+        if (cancelled) return;
+        setUser(freshUser);
+        setState('ok');
+      })
+      .catch(() => {
+        if (cancelled) return;
+        logout();
+        setState('unauthenticated');
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [token]);
+
+  if (state === 'unauthenticated') {
     return <Navigate to="/login" replace />;
   }
 
-  // --- Session Refresh Logic ---
-  // Do not trust the session role blindly. Cross-reference canonical users DB.
-  const usersStr = localStorage.getItem('petwise-users');
-  const allUsers = usersStr ? JSON.parse(usersStr) : [];
-  
-  // Try to find the canonical user by ID (or email as fallback for legacy)
-  const canonicalUser = allUsers.find(u => u.id === sessionUser.id) || 
-                        allUsers.find(u => u.email === sessionUser.email);
-                        
-  if (!canonicalUser) {
-    // User was deleted by admin
-    localStorage.removeItem('petwise-user');
-    return <Navigate to="/login" replace />;
+  if (state === 'loading') {
+    return (
+      <div style={{ padding: '60px', textAlign: 'center', color: '#64748b' }}>Loading…</div>
+    );
   }
-  
-  // If role was changed by Admin, the session must be invalidated or updated.
-  // The requirement says: "If the role was changed by Admin, use the updated role."
-  // Wait, it also says "Invalidate the old session. Require the user to log in again."
-  // I will enforce re-login if the role changed since they last logged in.
-  // But wait, if they log in, the session gets the new role. If they are ALREADY logged in and Admin changes it,
-  // their session role will differ from canonical role.
-  if (sessionUser.role !== canonicalUser.role) {
-    localStorage.removeItem('petwise-user');
-    return <Navigate to="/login" replace />;
-  }
-
-  // Update session object with fresh data (e.g. name changes, clinicId assignments)
-  sessionUser = canonicalUser;
-  localStorage.setItem('petwise-user', JSON.stringify(sessionUser));
 
   // --- Authorization ---
-  const userRole = sessionUser.role ? sessionUser.role.toUpperCase() : 'PET_OWNER';
-  const isAllowed = allowedRoles.map(r => r.toUpperCase()).includes(userRole);
-
+  const isAllowed = allowedRoles.map((r) => r.toUpperCase()).includes(user.role);
   if (!isAllowed) {
-    // Redirect based on actual role if they try to access restricted area
-    if (userRole === 'ADMIN') return <Navigate to="/admin" replace />;
-    if (userRole === 'CLINIC_STAFF') return <Navigate to="/staff" replace />;
-    return <Navigate to="/dashboard" replace />;
+    // Send the user to the area that matches their real role
+    return <Navigate to={homePathForRole(user)} replace />;
   }
 
-  // Allow through to children
   return <Outlet />;
 }

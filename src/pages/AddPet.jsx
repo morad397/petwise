@@ -22,6 +22,7 @@ function AddPet() {
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState('');
   const [error, setError] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
 
   function handleChange(event) {
     const { name, value } = event.target;
@@ -52,12 +53,6 @@ function AddPet() {
   async function handleSubmit(event) {
     event.preventDefault();
 
-    const savedUser = JSON.parse(localStorage.getItem('petwise-user') || '{}');
-    if (!savedUser.id) {
-      alert("You must be logged in to add a pet.");
-      return;
-    }
-    
     let persistentImageUrl = '';
     
     if (imageFile) {
@@ -70,17 +65,23 @@ function AddPet() {
       }
     }
 
-    createPet({
-      ownerId: savedUser.id,
-      name: form.name,
-      species: form.species,
-      breed: form.breed,
-      age: form.age,
-      weight: `${form.weight} kg`,
-      imageUrl: persistentImageUrl, // Saved as persistent Base64
-    });
-
-    navigate('/dashboard');
+    setIsSaving(true);
+    try {
+      // The owner is taken from the login token on the server.
+      await createPet({
+        name: form.name.trim(),
+        species: form.species,
+        breed: form.breed.trim() || null,
+        age: form.age === '' ? null : Number(form.age),
+        weightKg: form.weight === '' ? null : Number(form.weight),
+        imageUrl: persistentImageUrl || null, // Base64 image, stored in MySQL
+      });
+      navigate('/dashboard');
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setIsSaving(false);
+    }
   }
 
   return (
@@ -132,13 +133,12 @@ function AddPet() {
 
             <label className="form-group">
               <span>Weight (kg)</span>
-              <input type="text" name="weight" value={form.weight} onChange={handleChange} placeholder="Enter weight" />
+              <input type="number" min="0" step="0.1" name="weight" value={form.weight} onChange={handleChange} placeholder="Enter weight" />
             </label>
             
             <label className="form-group">
               <span>Pet Photo (Optional)</span>
               <input type="file" accept="image/jpeg, image/png, image/webp" onChange={handleFileChange} />
-              <small style={{ color: '#64748b' }}>A real backend will later upload images to cloud storage.</small>
             </label>
             
             {imagePreview && (
@@ -147,7 +147,9 @@ function AddPet() {
               </div>
             )}
 
-            <button type="submit" className="btn btn-primary btn-full">Save Pet</button>
+            <button type="submit" className="btn btn-primary btn-full" disabled={isSaving}>
+              {isSaving ? 'Saving…' : 'Save Pet'}
+            </button>
           </form>
         </div>
       </div>

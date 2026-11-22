@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import AppointmentForm from '../components/appointments/AppointmentForm';
 import StatusBadge from '../components/admin/StatusBadge';
 import ConfirmationModal from '../components/admin/ConfirmationModal';
-import { getAppointmentsByUserId, createAppointment, updateAppointment, deleteAppointment, getPetsByOwnerId, initializeDB } from '../services/dataService';
+import { getAppointmentsByUserId, createAppointment, updateAppointment, deleteAppointment, getMyPets, initializeDB } from '../services/dataService';
 
 function Appointments() {
   const [appointments, setAppointments] = useState([]);
@@ -27,10 +27,11 @@ function Appointments() {
     if (savedUser.id) {
       loadAppointments(savedUser.id);
       
-      const userPets = getPetsByOwnerId(savedUser.id);
-      if (userPets.length > 0) {
-        setPetName(userPets[0].name);
-      }
+      getMyPets()
+        .then((userPets) => {
+          if (userPets.length > 0) setPetName(userPets[0].name);
+        })
+        .catch((error) => console.error('Failed to load pets', error));
     }
   }, []);
 

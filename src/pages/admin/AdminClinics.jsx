@@ -4,6 +4,43 @@ import StatusBadge from '../../components/admin/StatusBadge';
 import ConfirmationModal from '../../components/admin/ConfirmationModal';
 import { getClinics, createClinic, updateClinic } from '../../services/dataService';
 
+// The API stores opening hours per weekday: [{ dayOfWeek, isOpen, openTime, closeTime }].
+// This form edits one start/end time that is applied to every open day.
+const DEFAULT_WEEK = Array.from({ length: 7 }, (_, day) => ({ dayOfWeek: day, isOpen: day !== 6 }));
+
+const firstOpenDay = (clinic) => (clinic.openingHours || []).find((h) => h.isOpen);
+
+const hoursLabel = (clinic) => {
+  if (clinic.isOpen24Hours) return '24 hours';
+  const day = firstOpenDay(clinic);
+  return day ? `${day.openTime} - ${day.closeTime}` : 'Closed';
+};
+
+const toForm = (clinic) => {
+  const day = firstOpenDay(clinic);
+  return {
+    ...clinic,
+    openingHours: { start: day?.openTime || '09:00', end: day?.closeTime || '17:00' },
+    originalOpeningHours: clinic.openingHours,
+  };
+};
+
+const toPayload = (form) => {
+  const week = form.originalOpeningHours?.length ? form.originalOpeningHours : DEFAULT_WEEK;
+  return {
+    name: form.name,
+    address: form.address,
+    phone: form.phone,
+    email: form.email,
+    status: form.status,
+    appointmentDurationMinutes: form.appointmentDurationMinutes || 30,
+    services: form.services || [],
+    openingHours: week.map((h) =>
+      h.isOpen ? { ...h, openTime: form.openingHours.start, closeTime: form.openingHours.end } : h
+    ),
+  };
+};
+
 export default function AdminClinics() {
   const [clinics, setClinics] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -13,12 +50,17 @@ export default function AdminClinics() {
   const [clinicData, setClinicData] = useState(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
+  const loadClinics = () =>
+    getClinics()
+      .then(setClinics)
+      .catch((error) => alert(error.message));
+
   useEffect(() => {
-    setClinics(getClinics());
+    loadClinics();
   }, []);
 
   const handleEdit = (clinic) => {
-    setClinicData({ ...clinic });
+    setClinicData(toForm(clinic));
     setIsEditModalOpen(true);
   };
 
@@ -31,20 +73,24 @@ export default function AdminClinics() {
       status: 'ACTIVE',
       openingHours: { start: '09:00', end: '17:00' },
       appointmentDurationMinutes: 30,
-      serviceIds: []
+      services: []
     });
     setIsEditModalOpen(true);
   };
 
-  const handleSave = (e) => {
+  const handleSave = async (e) => {
     e.preventDefault();
-    if (clinicData.id) {
-      updateClinic(clinicData.id, clinicData);
-    } else {
-      createClinic(clinicData);
+    try {
+      if (clinicData.id) {
+        await updateClinic(clinicData.id, toPayload(clinicData));
+      } else {
+        await createClinic(toPayload(clinicData));
+      }
+      await loadClinics();
+      setIsEditModalOpen(false);
+    } catch (error) {
+      alert(error.message);
     }
-    setClinics(getClinics());
-    setIsEditModalOpen(false);
   };
 
   const handleDeleteRequest = (clinic) => {
@@ -52,11 +98,15 @@ export default function AdminClinics() {
     setIsDeleteModalOpen(true);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     // Soft delete or status change is better than actual delete to preserve records
     if (clinicData.id) {
-      updateClinic(clinicData.id, { status: 'SUSPENDED' });
-      setClinics(getClinics());
+      try {
+        await updateClinic(clinicData.id, { status: 'SUSPENDED' });
+        await loadClinics();
+      } catch (error) {
+        alert(error.message);
+      }
     }
     setIsDeleteModalOpen(false);
   };
@@ -113,7 +163,7 @@ export default function AdminClinics() {
                     {clinic.phone}
                   </td>
                   <td>
-                    {clinic.openingHours.start} - {clinic.openingHours.end}
+                    {hoursLabel(clinic)}
                   </td>
                   <td><StatusBadge status={clinic.status} /></td>
                   <td style={{ textAlign: 'right' }}>

@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { register, homePathForRole } from '../services/authService';
+import { getClinics } from '../services/dataService';
 
 function Signup() {
   const navigate = useNavigate();
@@ -16,12 +18,9 @@ function Signup() {
   });
 
   useEffect(() => {
-    try {
-      const storedClinics = JSON.parse(localStorage.getItem('petwise-clinics') || '[]');
-      setClinics(storedClinics);
-    } catch (e) {
-      setClinics([]);
-    }
+    getClinics()
+      .then((list) => setClinics(list.filter((c) => c.status === 'ACTIVE')))
+      .catch(() => setClinics([]));
   }, []);
 
   function handleChange(event) {
@@ -30,8 +29,9 @@ function Signup() {
   }
 
   const [errors, setErrors] = useState({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault();
 
     let newErrors = {};
@@ -63,55 +63,31 @@ function Signup() {
     }
     setErrors({});
 
-    const normalizedEmail = form.email.trim().toLowerCase();
-    
-    // Check canonical users list
-    const usersStr = localStorage.getItem('petwise-users');
-    let users = [];
-    if (usersStr) {
-      users = JSON.parse(usersStr);
-    }
-    
-    const existingUser = users.find(u => u.email === normalizedEmail);
-    if (existingUser) {
-      setErrors({ email: 'An account with this email already exists.' });
+    if (form.password.length < 6) {
+      setErrors({ password: 'Password must be at least 6 characters.' });
       return;
     }
 
-    // DEMO ONLY: 
-    // Public role selection is not secure. 
-    // Production roles must be assigned and authorized by the backend.
-    const newUser = {
-      id: crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(),
-      fullName: form.fullName.trim() || 'User',
-      email: normalizedEmail,
-      password: form.password, // Frontend mock
-      role: form.role,
-      clinicId: form.role === 'CLINIC_STAFF' ? (form.clinicId || null) : undefined,
-      department: form.role === 'CLINIC_STAFF' ? (form.department || 'General Medicine') : undefined,
-      status: 'Active',
-      date: new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })
-    };
-
-    // Save to canonical DB
-    users.push(newUser);
-    localStorage.setItem('petwise-users', JSON.stringify(users));
-
-    // Save to active session
-    localStorage.setItem('petwise-user', JSON.stringify(newUser));
-    
-    switch (newUser.role) {
-      case 'PET_OWNER':
-        navigate('/dashboard', { replace: true });
-        break;
-      case 'CLINIC_STAFF':
-        navigate('/staff', { replace: true });
-        break;
-      case 'ADMIN':
-        navigate('/admin', { replace: true });
-        break;
-      default:
-        navigate('/', { replace: true });
+    setIsSubmitting(true);
+    try {
+      const isStaff = form.role === 'CLINIC_STAFF';
+      const user = await register({
+        fullName: form.fullName.trim(),
+        email: form.email.trim().toLowerCase(),
+        password: form.password,
+        role: form.role,
+        clinicId: isStaff ? form.clinicId : null,
+        department: isStaff ? form.department : null,
+      });
+      navigate(homePathForRole(user), { replace: true });
+    } catch (error) {
+      if (error.status === 409) {
+        setErrors({ email: error.message });
+      } else {
+        setErrors({ general: error.message });
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
@@ -166,8 +142,8 @@ function Signup() {
                 <option value="">Choose your role</option>
                 <option value="PET_OWNER">Pet Owner</option>
                 <option value="CLINIC_STAFF">Clinic Staff</option>
-                <option value="ADMIN">Admin</option>
               </select>
+              <small style={{ color: '#64748b' }}>Admin accounts are created by an existing administrator.</small>
             </label>
 
             {form.role === 'CLINIC_STAFF' && (
@@ -197,7 +173,9 @@ function Signup() {
               </div>
             )}
 
-            <button type="submit" className="btn btn-primary btn-full" style={{ marginTop: '8px' }}>Continue</button>
+            <button type="submit" className="btn btn-primary btn-full" style={{ marginTop: '8px' }} disabled={isSubmitting}>
+              {isSubmitting ? 'Creating account…' : 'Continue'}
+            </button>
           </form>
 
           <p className="auth-link-row">

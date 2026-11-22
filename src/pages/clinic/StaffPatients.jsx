@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import PetImage from '../../components/PetImage';
-import { getPetById } from '../../services/dataService';
 
 function StaffPatients() {
   const [patients, setPatients] = useState([]);
@@ -13,11 +12,9 @@ function StaffPatients() {
       ? allAppointments.filter(app => String(app.clinicId) === String(staffMember.clinicId))
       : allAppointments;
 
-    // 2. Extract unique pet IDs
-    const uniquePetIds = [...new Set(clinicAppointments.map(app => app.petId).filter(Boolean))];
-
-    // 3. Fetch full pet objects
-    const loadedPatients = uniquePetIds.map(id => getPetById(id)).filter(Boolean);
+    // 2. Full pet records for staff come with the appointments API (module 2/3);
+    // until then patients are built from the details saved on each appointment.
+    const loadedPatients = [];
     
     // Fallback logic if appointments contain petName but no actual Pet record in DB yet
     // Just to make the demo robust if the user hasn't added pets properly.

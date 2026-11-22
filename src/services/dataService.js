@@ -1,47 +1,14 @@
 // dataService.js
-// Handles localStorage mock database operations
+// Pets and clinics come from the FastAPI backend (MySQL).
+// Appointments are still kept in localStorage until the appointments API is built (module 2).
+
+import { apiRequest } from './api';
 
 const DB_KEYS = {
   USERS: 'petwise-users',
   PETS: 'petwise-pets',
-  CLINICS: 'petwise-clinics',
   APPOINTMENTS: 'petwise-appointments'
 };
-
-const DEFAULT_CLINICS = [
-  {
-    id: 'clinic-1',
-    name: 'Downtown Vet Center',
-    address: '123 Main St, Cityville',
-    city: 'Cityville',
-    phone: '555-0101',
-    email: 'contact@downtownvet.com',
-    status: 'ACTIVE',
-    isEmergencyClinic: true,
-    isOpen24Hours: true,
-    latitude: 40.7128,
-    longitude: -74.0060,
-    emergencyServices: ['Trauma', 'Surgery', 'Oxygen'],
-    openingHours: { start: '00:00', end: '23:59' }, // Simplified for mock
-    serviceIds: ['Vet Consultation', 'Vaccination', 'Dental Checkup'],
-    staffIds: [],
-    appointmentDurationMinutes: 30
-  },
-  {
-    id: 'clinic-2',
-    name: 'Happy Paws Grooming & Care',
-    address: '456 Oak Rd, Townsville',
-    city: 'Townsville',
-    phone: '555-0202',
-    email: 'hello@happypaws.com',
-    status: 'ACTIVE',
-    isEmergencyClinic: false,
-    openingHours: { start: '08:00', end: '18:00' },
-    serviceIds: ['Grooming', 'Vet Consultation'],
-    staffIds: [],
-    appointmentDurationMinutes: 45
-  }
-];
 
 // Helper to read from localStorage
 const readDB = (key) => {
@@ -58,47 +25,6 @@ const writeDB = (key, data) => {
 };
 
 // --- Migration ---
-const migrateLegacyPets = () => {
-  const isMigrated = localStorage.getItem('petwise_pet_image_migration_v2');
-  if (isMigrated === 'true') return;
-
-  const pets = readDB(DB_KEYS.PETS);
-  let changed = false;
-
-  let currentUser = JSON.parse(localStorage.getItem('petwise-user') || '{}');
-  const fallbackOwnerId = currentUser.id || 'unknown_owner';
-
-  const updatedPets = pets.map(pet => {
-    let modified = { ...pet };
-    let hasChanges = false;
-    
-    if (modified.imageUrl && !modified.avatar) {
-      modified.avatar = modified.imageUrl;
-      delete modified.imageUrl;
-      hasChanges = true;
-    }
-    
-    if (modified.breed && !modified.type) {
-      modified.type = 'Dog'; // Guessing
-      hasChanges = true;
-    }
-    
-    if (!modified.ownerId) {
-      modified.ownerId = fallbackOwnerId;
-      hasChanges = true;
-    }
-    
-    if (hasChanges) changed = true;
-    return modified;
-  });
-
-  if (changed) {
-    writeDB(DB_KEYS.PETS, updatedPets);
-  }
-
-  localStorage.setItem('petwise_pet_image_migration_v2', 'true');
-};
-
 const migrateLegacyAppointments = () => {
   const isMigrated = localStorage.getItem('petwise_appointment_migration_v1');
   if (isMigrated === 'true') return;
@@ -130,95 +56,10 @@ const migrateLegacyAppointments = () => {
 };
 
 // --- Initialization ---
-const DEMO_CLINICS = [
-  {
-    id: 'demo-clinic-1',
-    name: 'PetWise Central Veterinary Clinic',
-    city: 'Tiberias',
-    address: 'Demo location — Tiberias',
-    phone: '1-800-PETWISE',
-    status: 'ACTIVE',
-    isDemo: true,
-    appointmentDurationMinutes: 30,
-    openingHours: [
-      { dayOfWeek: 0, isOpen: true, openTime: '08:00', closeTime: '18:00' },
-      { dayOfWeek: 1, isOpen: true, openTime: '08:00', closeTime: '18:00' },
-      { dayOfWeek: 2, isOpen: true, openTime: '08:00', closeTime: '18:00' },
-      { dayOfWeek: 3, isOpen: true, openTime: '08:00', closeTime: '18:00' },
-      { dayOfWeek: 4, isOpen: true, openTime: '08:00', closeTime: '18:00' },
-      { dayOfWeek: 5, isOpen: false },
-      { dayOfWeek: 6, isOpen: false }
-    ],
-    services: ['General Checkup', 'Vaccination', 'Dental Care', 'Health Follow-up', 'Emergency Consultation'],
-    serviceIds: ['General Checkup', 'Vaccination', 'Dental Care', 'Health Follow-up', 'Emergency Consultation'],
-    staffIds: [],
-    isEmergencyClinic: true,
-    isOpen24Hours: false,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  },
-  {
-    id: 'demo-clinic-2',
-    name: 'Lake Veterinary Center',
-    city: 'Kinneret Area',
-    address: 'Demo location — Kinneret Area',
-    status: 'ACTIVE',
-    isDemo: true,
-    appointmentDurationMinutes: 30,
-    openingHours: [
-      { dayOfWeek: 0, isOpen: true, openTime: '09:00', closeTime: '17:00' },
-      { dayOfWeek: 1, isOpen: true, openTime: '09:00', closeTime: '17:00' },
-      { dayOfWeek: 2, isOpen: true, openTime: '09:00', closeTime: '17:00' },
-      { dayOfWeek: 3, isOpen: true, openTime: '09:00', closeTime: '17:00' },
-      { dayOfWeek: 4, isOpen: true, openTime: '09:00', closeTime: '17:00' },
-      { dayOfWeek: 5, isOpen: true, openTime: '09:00', closeTime: '17:00' },
-      { dayOfWeek: 6, isOpen: false }
-    ],
-    services: ['General Checkup', 'Vaccination', 'Grooming Consultation', 'Nutrition Consultation'],
-    serviceIds: ['General Checkup', 'Vaccination', 'Grooming Consultation', 'Nutrition Consultation'],
-    staffIds: [],
-    isEmergencyClinic: false,
-    isOpen24Hours: false,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  },
-  {
-    id: 'demo-clinic-3',
-    name: 'North Pet Care Clinic',
-    city: 'Nazareth',
-    address: 'Demo location — Nazareth',
-    status: 'ACTIVE',
-    isDemo: true,
-    appointmentDurationMinutes: 45,
-    openingHours: [
-      { dayOfWeek: 0, isOpen: false },
-      { dayOfWeek: 1, isOpen: true, openTime: '08:30', closeTime: '19:00' },
-      { dayOfWeek: 2, isOpen: true, openTime: '08:30', closeTime: '19:00' },
-      { dayOfWeek: 3, isOpen: true, openTime: '08:30', closeTime: '19:00' },
-      { dayOfWeek: 4, isOpen: true, openTime: '08:30', closeTime: '19:00' },
-      { dayOfWeek: 5, isOpen: true, openTime: '08:30', closeTime: '19:00' },
-      { dayOfWeek: 6, isOpen: true, openTime: '08:30', closeTime: '19:00' }
-    ],
-    services: ['General Checkup', 'Vaccination', 'Health Follow-up', 'Dental Care'],
-    serviceIds: ['General Checkup', 'Vaccination', 'Health Follow-up', 'Dental Care'],
-    staffIds: [],
-    isEmergencyClinic: false,
-    isOpen24Hours: false,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  }
-];
-
+// Clinics now live in MySQL (see backend/app/seed.py).
 export const initializeDB = () => {
   const isReset = localStorage.getItem('petwise_development_reset_completed');
 
-  const clinics = readDB(DB_KEYS.CLINICS);
-  const CLINIC_SEED_VERSION = "petwise_demo_clinics_v1";
-  if (!localStorage.getItem(CLINIC_SEED_VERSION) && clinics.length === 0) {
-    writeDB(DB_KEYS.CLINICS, DEMO_CLINICS);
-    localStorage.setItem(CLINIC_SEED_VERSION, "completed");
-  }
-  
   // Ensure appointments exist
   const appointments = readDB(DB_KEYS.APPOINTMENTS);
   if (!appointments || !Array.isArray(appointments)) {
@@ -226,7 +67,6 @@ export const initializeDB = () => {
   }
 
   if (isReset !== 'true') {
-    migrateLegacyPets();
     migrateLegacyAppointments();
   }
 };
@@ -279,71 +119,41 @@ export const resetDevelopmentData = (preserveAdminId) => {
   return true;
 };
 
-// --- Exports ---
-export const getPetsByOwnerId = (ownerId) => {
-  const pets = readDB(DB_KEYS.PETS);
-  return pets.filter(pet => String(pet.ownerId) === String(ownerId));
-};
+// --- Pets (API) ---
+// The server only returns the logged-in user's pets, so no owner id is needed.
+export const getMyPets = () => apiRequest('/pets');
 
-export const getPetById = (petId) => {
-  const pets = readDB(DB_KEYS.PETS);
-  return pets.find(pet => pet.id === petId || pet.name.toLowerCase() === petId);
-};
+// Kept for older callers; ownerId is ignored because the server decides by the login token.
+// eslint-disable-next-line no-unused-vars
+export const getPetsByOwnerId = (_ownerId) => getMyPets();
 
-export const createPet = (petData) => {
-  const pets = readDB(DB_KEYS.PETS);
-  const newPet = { ...petData, id: Date.now().toString() };
-  pets.push(newPet);
-  writeDB(DB_KEYS.PETS, pets);
-  return newPet;
-};
+// Throws ApiError with status 404 (not found) or 403 (not your pet).
+export const getPetById = (petId) => apiRequest(`/pets/${encodeURIComponent(petId)}`);
 
-export const updatePet = (petId, petData) => {
-  const pets = readDB(DB_KEYS.PETS);
-  const index = pets.findIndex(p => p.id === petId);
-  if (index !== -1) {
-    pets[index] = { ...pets[index], ...petData };
-    writeDB(DB_KEYS.PETS, pets);
-    return pets[index];
-  }
-  return null;
-};
+export const createPet = (petData) => apiRequest('/pets', { method: 'POST', body: petData });
 
-export const deletePet = (petId) => {
-  const pets = readDB(DB_KEYS.PETS);
-  const filtered = pets.filter(p => p.id !== petId);
-  writeDB(DB_KEYS.PETS, filtered);
-};
+export const updatePet = (petId, petData) =>
+  apiRequest(`/pets/${encodeURIComponent(petId)}`, { method: 'PUT', body: petData });
+
+export const deletePet = (petId) =>
+  apiRequest(`/pets/${encodeURIComponent(petId)}`, { method: 'DELETE' });
+
+// "22.5" -> "22.5 kg", missing -> fallback text
+export const formatWeight = (pet, fallback = '') =>
+  pet && pet.weightKg != null ? `${pet.weightKg} kg` : fallback;
 
 
-// --- Clinics ---
-export const getClinics = () => {
-  return readDB(DB_KEYS.CLINICS);
-};
+// --- Clinics (API) ---
+export const getClinics = () => apiRequest('/clinics', { auth: false });
 
-export const getClinicById = (clinicId) => {
-  const clinics = readDB(DB_KEYS.CLINICS);
-  return clinics.find(c => c.id === clinicId);
-};
+export const getClinicById = (clinicId) =>
+  apiRequest(`/clinics/${encodeURIComponent(clinicId)}`, { auth: false });
 
-export const createClinic = (clinicData) => {
-  const clinics = readDB(DB_KEYS.CLINICS);
-  const newClinic = { ...clinicData, id: 'clinic-' + Date.now() };
-  clinics.push(newClinic);
-  writeDB(DB_KEYS.CLINICS, clinics);
-  return newClinic;
-};
+export const createClinic = (clinicData) =>
+  apiRequest('/clinics', { method: 'POST', body: clinicData });
 
-export const updateClinic = (clinicId, clinicData) => {
-  const clinics = readDB(DB_KEYS.CLINICS);
-  const index = clinics.findIndex(c => c.id === clinicId);
-  if (index !== -1) {
-    clinics[index] = { ...clinics[index], ...clinicData };
-    writeDB(DB_KEYS.CLINICS, clinics);
-    return clinics[index];
-  }
-  return null;
-};
+export const updateClinic = (clinicId, clinicData) =>
+  apiRequest(`/clinics/${encodeURIComponent(clinicId)}`, { method: 'PUT', body: clinicData });
 
 
 // --- Appointments ---
@@ -354,7 +164,7 @@ export const getAppointmentsByUserId = (userId) => {
 
 export const getAppointmentsByClinicId = (clinicId) => {
   const appointments = readDB(DB_KEYS.APPOINTMENTS);
-  return appointments.filter(apt => apt.clinicId === clinicId);
+  return appointments.filter(apt => String(apt.clinicId) === String(clinicId));
 };
 
 export const createAppointment = (appointmentData) => {
@@ -393,12 +203,11 @@ export const deleteAppointment = (appointmentId) => {
 };
 
 // --- Availability ---
-export const getAvailableSlots = (clinicId, date) => {
-  if (!clinicId) return { status: "CLINIC_NOT_SELECTED", slots: [] };
-  if (!date) return { status: "DATE_NOT_SELECTED", slots: [] };
-
-  const clinic = getClinicById(clinicId);
+// `clinic` is the clinic object (already loaded from the API by the caller).
+export const getAvailableSlots = (clinic, date) => {
   if (!clinic) return { status: "CLINIC_NOT_SELECTED", slots: [] };
+  if (!date) return { status: "DATE_NOT_SELECTED", slots: [] };
+  const clinicId = clinic.id;
   
   // Convert local date to local dayOfWeek (0 = Sunday, 1 = Monday...)
   const dateObj = new Date(date + 'T00:00:00'); // Parse explicitly in local time assuming YYYY-MM-DD

@@ -1,16 +1,47 @@
-# React + Vite
+# PetWise
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Pet-care platform: final project, Software Engineering, Kinneret Academic College.
 
-Currently, two official plugins are available:
+- **Frontend:** React + Vite (this folder), hosted on GitHub Pages
+- **Backend:** Python FastAPI ([backend/](backend/README.md)), hosted on Render
+- **Database:** MongoDB Atlas (NoSQL, cloud)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+```
+Browser ──> GitHub Pages (React) ──> Render (FastAPI) ──> MongoDB Atlas
+```
 
-## React Compiler
+## Run locally
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+1. Backend (one-time setup in [backend/README.md](backend/README.md)):
+   ```powershell
+   cd backend
+   .venv\Scripts\python -m uvicorn app.main:app --reload --port 8000
+   ```
+2. Frontend (second terminal, this folder):
+   ```powershell
+   npm install
+   npm run dev
+   ```
+3. Open http://localhost:5173/petwise/
 
-## Expanding the ESLint configuration
+Locally the frontend calls `http://localhost:8000/api` (`.env.development`).
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Put it online
+
+1. Deploy the backend to Render (steps in [backend/README.md](backend/README.md)).
+2. Put the Render URL in `.env.production` (`VITE_API_URL=https://<service>.onrender.com/api`).
+3. Publish the frontend to GitHub Pages:
+   ```powershell
+   npm run deploy
+   ```
+4. Open https://morad397.github.io/petwise/
+
+## Progress (step 2: backend + API integration)
+
+| Module | Status |
+|---|---|
+| 1. Authentication, roles, users, clinics, pets | Connected to MongoDB |
+| 2. Medical records, reminders, appointments | Still localStorage |
+| 3. Clinic staff views | Still localStorage |
+| 4. Shop, orders, community | Still localStorage |
+| 5. Admin analytics, AI, notifications | Still localStorage |

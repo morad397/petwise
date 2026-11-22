@@ -1,6 +1,7 @@
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { useCart } from '../contexts/CartContext';
+import { logout } from '../services/authService';
 import { 
   PawPrint, 
   Home, 
@@ -69,7 +70,7 @@ export default function TopBar() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('petwise-user');
+    logout();
     navigate('/login');
   };
 
