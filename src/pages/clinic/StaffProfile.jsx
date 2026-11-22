@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { updateMe } from '../../services/authService';
 
 function StaffProfile() {
   const staffMember = JSON.parse(localStorage.getItem('petwise-user') || '{}');
@@ -12,11 +13,14 @@ function StaffProfile() {
     setForm(cur => ({ ...cur, [e.target.name]: e.target.value }));
   };
 
-  const handleSave = (e) => {
+  const handleSave = async (e) => {
     e.preventDefault();
-    const updated = { ...staffMember, ...form };
-    localStorage.setItem('petwise-user', JSON.stringify(updated));
-    alert("Profile updated successfully!");
+    try {
+      await updateMe({ fullName: form.fullName, email: form.email, phone: form.phone || null });
+      alert("Profile updated successfully!");
+    } catch (error) {
+      alert(error.message);
+    }
   };
 
   return (

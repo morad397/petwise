@@ -15,7 +15,9 @@ export default function Sos() {
   useEffect(() => {
     setSettings(getEmergencySettings());
     setGuides(getActiveGuides());
-    setClinics(getClinics());
+    getClinics()
+      .then(setClinics)
+      .catch((error) => console.error('Failed to load clinics', error));
   }, []);
 
   return (

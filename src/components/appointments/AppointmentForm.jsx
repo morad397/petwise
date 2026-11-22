@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getPetsByOwnerId, getClinics, getClinicById, getAvailableSlots } from '../../services/dataService';
+import { getMyPets, getClinics, getAvailableSlots } from '../../services/dataService';
 import { Stethoscope } from 'lucide-react';
 
 export default function AppointmentForm({ 
@@ -27,8 +27,12 @@ export default function AppointmentForm({
   // Load basic data
   useEffect(() => {
     if (currentUser.id) {
-      setPets(getPetsByOwnerId(currentUser.id));
-      setClinics(getClinics().filter(c => c.status === 'ACTIVE'));
+      getMyPets()
+        .then(setPets)
+        .catch((error) => console.error('Failed to load pets', error));
+      getClinics()
+        .then((list) => setClinics(list.filter(c => c.status === 'ACTIVE')))
+        .catch((error) => console.error('Failed to load clinics', error));
     }
 
     if (initialData) {
@@ -46,19 +50,20 @@ export default function AppointmentForm({
   // Handle clinic selection changes
   useEffect(() => {
     if (form.clinicId) {
-      const clinic = getClinicById(form.clinicId);
+      const clinic = clinics.find(c => String(c.id) === String(form.clinicId));
       if (clinic) {
-        setAvailableServices(clinic.serviceIds || []);
+        setAvailableServices(clinic.services || []);
       } else {
         setAvailableServices([]);
       }
     }
-  }, [form.clinicId]);
+  }, [form.clinicId, clinics]);
 
   // Handle date selection changes for slot availability
   useEffect(() => {
     if (form.clinicId && form.appointmentDate) {
-      const result = getAvailableSlots(form.clinicId, form.appointmentDate);
+      const clinic = clinics.find(c => String(c.id) === String(form.clinicId));
+      const result = getAvailableSlots(clinic, form.appointmentDate);
       setSlotStatus(result.status);
       setAvailableSlots(result.slots);
     } else if (!form.clinicId) {
@@ -68,7 +73,7 @@ export default function AppointmentForm({
       setSlotStatus("DATE_NOT_SELECTED");
       setAvailableSlots([]);
     }
-  }, [form.clinicId, form.appointmentDate]);
+  }, [form.clinicId, form.appointmentDate, clinics]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -92,13 +97,15 @@ export default function AppointmentForm({
     
     // Simulate slight network delay
     setTimeout(() => {
-      const selectedPet = pets.find(p => p.id === form.petId);
-      const selectedClinic = clinics.find(c => c.id === form.clinicId);
+      const selectedPet = pets.find(p => String(p.id) === String(form.petId));
 
       onSave({
         ...form,
         title: form.serviceId, // map back to UI format
         petName: selectedPet ? selectedPet.name : '',
+        // Saved with the appointment so clinic staff can see the patient
+        // (until the appointments API exists in module 2).
+        petSpecies: selectedPet ? selectedPet.species : '',
         ownerName: currentUser.fullName || currentUser.email,
         detail: form.notes,
       });

@@ -1,28 +1,18 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import PetImage from '../components/PetImage';
-import { getPetsByOwnerId } from '../services/dataService';
+import { getMyPets } from '../services/dataService';
 
 function MyPets() {
   const [pets, setPets] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    // Ensure DB is initialized and migrated
-    import('../services/dataService').then(({ initializeDB, getPetsByOwnerId }) => {
-      initializeDB();
-      try {
-        const user = JSON.parse(localStorage.getItem('petwise-user') || '{}');
-        if (user.id) {
-          // dataService now uses strict String() comparisons
-          setPets(getPetsByOwnerId(user.id));
-        }
-      } catch (e) {
-        console.error('Failed to parse pets', e);
-      } finally {
-        setIsLoading(false);
-      }
-    });
+    getMyPets()
+      .then(setPets)
+      .catch((e) => setError(e.message))
+      .finally(() => setIsLoading(false));
   }, []);
 
   return (
@@ -41,6 +31,10 @@ function MyPets() {
         {isLoading ? (
           <section className="section-card empty-state">
             <p>Loading your pets…</p>
+          </section>
+        ) : error ? (
+          <section className="section-card empty-state">
+            <p style={{ color: '#ff5a79' }}>{error}</p>
           </section>
         ) : pets.length === 0 ? (
           <section className="section-card empty-state">

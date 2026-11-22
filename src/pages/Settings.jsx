@@ -1,9 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import TopBar from '../components/TopBar';
+import { getCurrentUser, updateMe } from '../services/authService';
+
+const ROLE_LABELS = { PET_OWNER: 'Pet Owner', CLINIC_STAFF: 'Clinic Staff', ADMIN: 'Admin' };
 
 function Settings() {
   const navigate = useNavigate();
+  const [error, setError] = useState('');
   const [form, setForm] = useState({
     fullName: '',
     email: '',
@@ -11,7 +15,7 @@ function Settings() {
   });
 
   useEffect(() => {
-    const savedUser = JSON.parse(localStorage.getItem('petwise-user') || '{}');
+    const savedUser = getCurrentUser();
     setForm({
       fullName: savedUser.fullName || '',
       email: savedUser.email || '',
@@ -24,26 +28,16 @@ function Settings() {
     setForm((current) => ({ ...current, [name]: value }));
   }
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault();
-
-    const previousUser = JSON.parse(localStorage.getItem('petwise-user') || '{}');
-    const savedPets = JSON.parse(localStorage.getItem('petwise-pets') || '[]');
-
-    if (previousUser.email && previousUser.email !== form.email) {
-      const updatedPets = savedPets.map((pet) => {
-        if (pet.ownerEmail === previousUser.email) {
-          return { ...pet, ownerEmail: form.email };
-        }
-
-        return pet;
-      });
-
-      localStorage.setItem('petwise-pets', JSON.stringify(updatedPets));
+    setError('');
+    try {
+      // The role cannot be changed here; only an admin can change roles.
+      await updateMe({ fullName: form.fullName, email: form.email });
+      navigate('/dashboard');
+    } catch (e) {
+      setError(e.message);
     }
-
-    localStorage.setItem('petwise-user', JSON.stringify(form));
-    navigate('/dashboard');
   }
 
   return (
@@ -52,6 +46,7 @@ function Settings() {
           <p className="eyebrow">Preferences</p>
           <h1>Settings</h1>
 
+          {error && <p style={{ color: '#ff5a79', fontWeight: 'bold' }}>{error}</p>}
           <form className="settings-grid" onSubmit={handleSubmit}>
             <div className="form-card">
               <h3>Profile</h3>
@@ -67,11 +62,7 @@ function Settings() {
 
               <label className="form-group">
                 <span>Role</span>
-                <select name="role" value={form.role} onChange={handleChange}>
-                  <option value="">Select role</option>
-                  <option value="owner">Pet Owner</option>
-                  <option value="admin">Admin</option>
-                </select>
+                <input type="text" value={ROLE_LABELS[form.role] || form.role} disabled />
               </label>
             </div>
 

@@ -1,0 +1,26 @@
+# Render blueprint: hosts the PetWise backend online (free plan).
+# Render -> New -> Blueprint -> pick this GitHub repo. It reads this file.
+services:
+  - type: web
+    name: petwise-api
+    runtime: python
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.8
+      - key: MONGODB_URL
+        sync: false # you paste your MongoDB Atlas connection string in the Render dashboard
+      - key: MONGODB_DB
+        value: petwise
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CORS_ORIGINS
+        value: https://morad397.github.io,http://localhost:5173
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false

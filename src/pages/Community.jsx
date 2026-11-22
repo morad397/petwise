@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getPosts } from '../services/communityService';
-import { getPetsByOwnerId } from '../services/dataService';
+import { getMyPets } from '../services/dataService';
 
 // Subcomponents
 import CommunityStories from '../components/community/CommunityStories';
@@ -27,7 +27,9 @@ export default function Community() {
 
     // Load pets for this user
     if (savedUser.id) {
-      setUserPets(getPetsByOwnerId(savedUser.id));
+      getMyPets()
+        .then(setUserPets)
+        .catch((error) => console.error('Failed to load pets', error));
     }
 
     refreshPosts();

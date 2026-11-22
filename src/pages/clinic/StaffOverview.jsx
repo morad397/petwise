@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Calendar, Clock, CheckCircle, CheckSquare, Users } from 'lucide-react';
 import PetImage from '../../components/PetImage';
-import { getPetById } from '../../services/dataService';
 
 function StaffOverview() {
   const navigate = useNavigate();
@@ -24,13 +23,9 @@ function StaffOverview() {
   const completed = appointments.filter(a => a.status === 'COMPLETED').length;
   const uniquePatients = new Set(appointments.map(a => a.petId).filter(Boolean)).size;
 
+  // Pet details are saved on the appointment itself. Staff access to full pet
+  // records through the API comes with the appointments module (module 2/3).
   const getPetDetails = (app) => {
-    if (app.petId) {
-      const pet = getPetById(app.petId);
-      if (pet) {
-        return { name: pet.name, species: pet.species, imageUrl: pet.imageUrl, ownerName: pet.ownerName || app.ownerName || 'Unknown Owner' };
-      }
-    }
     return { name: app.petName || 'Unknown Pet', species: app.petSpecies, imageUrl: app.petImage, ownerName: app.ownerName || 'Unknown Owner' };
   };
 

@@ -1,25 +1,10 @@
-import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getPetById } from '../services/dataService';
+import usePet from '../hooks/usePet';
 
 function Recommendations() {
   const { petId } = useParams();
   const navigate = useNavigate();
-  const [pet, setPet] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const savedUser = JSON.parse(localStorage.getItem('petwise-user') || '{}');
-    const foundPet = getPetById(petId);
-    
-    if (foundPet && String(foundPet.ownerId) === String(savedUser.id)) {
-      setPet(foundPet);
-    } else {
-      alert("Access Denied: You do not have permission to view this pet.");
-      navigate('/pets', { replace: true });
-    }
-    setLoading(false);
-  }, [petId, navigate]);
+  const { pet, loading } = usePet(petId);
 
   if (loading) return <p>Loading...</p>;
   if (!pet) return null;

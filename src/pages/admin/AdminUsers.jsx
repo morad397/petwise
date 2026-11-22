@@ -3,13 +3,19 @@ import { Search, Filter, MoreVertical, Edit2, Trash2, Ban, CheckCircle, Plus } f
 import StatusBadge from '../../components/admin/StatusBadge';
 import ConfirmationModal from '../../components/admin/ConfirmationModal';
 import { getClinics } from '../../services/dataService';
+import { getAllUsers, adminCreateUser, adminUpdateUser, adminDeleteUser, getCurrentUser } from '../../services/authService';
 
-const MOCK_USERS = [
-  { id: '1', name: 'John Doe', email: 'john@example.com', role: 'Pet Owner', date: 'Oct 12, 2026', status: 'Active' },
-  { id: '2', name: 'Sarah Smith', email: 'sarah.s@domain.com', role: 'Staff', date: 'Nov 01, 2026', status: 'Active' },
-  { id: '3', name: 'Emily Clark', email: 'emily.c@pets.org', role: 'Pet Owner', date: 'Oct 24, 2026', status: 'Suspended' },
-  { id: '4', name: 'James Park', email: 'jpark@vetclinic.com', role: 'Admin', date: 'Jan 15, 2026', status: 'Active' },
-];
+const ROLE_LABELS = { PET_OWNER: 'Pet Owner', CLINIC_STAFF: 'Staff', ADMIN: 'Admin' };
+const labelToRole = (label) => (label === 'Staff' ? 'CLINIC_STAFF' : label === 'Admin' ? 'ADMIN' : 'PET_OWNER');
+
+// API user -> the shape this table shows
+const toRow = (u) => ({
+  ...u,
+  name: u.fullName,
+  roleLabel: ROLE_LABELS[u.role] || u.role,
+  status: u.status === 'ACTIVE' ? 'Active' : 'Suspended',
+  date: new Date(u.createdAt).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
+});
 
 export default function AdminUsers() {
   const [users, setUsers] = useState([]);
@@ -18,7 +24,7 @@ export default function AdminUsers() {
   const [roleFilter, setRoleFilter] = useState('All');
   const [statusFilter, setStatusFilter] = useState('All');
   const [sortOrder, setSortOrder] = useState('name-asc');
-  const [currentUserEmail, setCurrentUserEmail] = useState('');
+  const [currentUserEmail] = useState(() => getCurrentUser().email || '');
   
   // Modal state
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -44,109 +50,82 @@ export default function AdminUsers() {
     department: ''
   });
 
+  const loadUsers = () =>
+    getAllUsers()
+      .then((list) => setUsers(list.map(toRow)))
+      .catch((error) => alert(error.message));
+
   useEffect(() => {
-    // Load clinics
-    setClinics(getClinics());
-
-    // Load users from localStorage (combining actual user + mock data)
-    const loggedInUser = JSON.parse(localStorage.getItem('petwise-user') || '{}');
-    if (loggedInUser.email) setCurrentUserEmail(loggedInUser.email);
-
-    const savedUsersStr = localStorage.getItem('petwise-users');
-    const savedUsers = JSON.parse(savedUsersStr || '[]');
-    
-    // If no users and never initialized, start with empty array for fresh start
-    if (!savedUsersStr) {
-      localStorage.setItem('petwise-users', JSON.stringify([]));
-      setUsers([]);
-    } else {
-      setUsers(savedUsers);
-    }
+    getClinics().then(setClinics).catch(() => setClinics([]));
+    loadUsers();
   }, []);
 
-  const handleAddUser = (e) => {
+  const handleAddUser = async (e) => {
     e.preventDefault();
     if (!addForm.fullName || !addForm.email || !addForm.password) {
       alert("Please fill all required fields.");
       return;
     }
-    
-    const internalRole = addForm.role === 'Staff' ? 'CLINIC_STAFF' : (addForm.role === 'Admin' ? 'ADMIN' : 'PET_OWNER');
-    
-    if (internalRole === 'CLINIC_STAFF' && !addForm.clinicId) {
+    const role = labelToRole(addForm.role);
+    if (role === 'CLINIC_STAFF' && !addForm.clinicId) {
       alert("Clinic Staff must be assigned to a clinic.");
       return;
     }
-
-    const newUser = {
-      id: Date.now().toString(),
-      name: addForm.fullName,
-      fullName: addForm.fullName, // Also save fullName for compatibility
-      email: addForm.email.toLowerCase(),
-      role: internalRole,
-      status: 'Active',
-      date: new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })
-    };
-
-    if (internalRole === 'CLINIC_STAFF') {
-      newUser.clinicId = addForm.clinicId;
-      newUser.department = addForm.department;
+    try {
+      await adminCreateUser({
+        fullName: addForm.fullName.trim(),
+        email: addForm.email.trim().toLowerCase(),
+        password: addForm.password,
+        role,
+        clinicId: role === 'CLINIC_STAFF' ? Number(addForm.clinicId) : null,
+        department: role === 'CLINIC_STAFF' ? addForm.department : null,
+      });
+      await loadUsers();
+      setIsAddModalOpen(false);
+      setAddForm({ fullName: '', email: '', password: '', role: 'Pet Owner', clinicId: '', department: '' });
+    } catch (error) {
+      alert(error.message);
     }
-
-    const updatedUsers = [...users, newUser];
-    saveUsers(updatedUsers);
-    setIsAddModalOpen(false);
-    setAddForm({ fullName: '', email: '', password: '', role: 'Pet Owner', clinicId: '', department: '' });
-  };
-
-  const saveUsers = (updatedUsers) => {
-    setUsers(updatedUsers);
-    localStorage.setItem('petwise-users', JSON.stringify(updatedUsers));
   };
 
   const openRoleChangeModal = (user) => {
-    const displayRole = user.role === 'CLINIC_STAFF' ? 'Staff' : (user.role === 'ADMIN' ? 'Admin' : 'Pet Owner');
     setRoleChangeModal({
       isOpen: true,
       user,
-      role: displayRole,
+      role: user.roleLabel,
       clinicId: user.clinicId || '',
       department: user.department || ''
     });
   };
 
-  const submitRoleChange = (e) => {
+  const submitRoleChange = async (e) => {
     e.preventDefault();
-    const internalRole = roleChangeModal.role === 'Staff' ? 'CLINIC_STAFF' : (roleChangeModal.role === 'Admin' ? 'ADMIN' : 'PET_OWNER');
-    
-    if (internalRole === 'CLINIC_STAFF' && !roleChangeModal.clinicId) {
+    const role = labelToRole(roleChangeModal.role);
+    if (role === 'CLINIC_STAFF' && !roleChangeModal.clinicId) {
       alert("Clinic Staff must be assigned to a clinic.");
       return;
     }
-    
-    const updatedUser = { 
-      ...roleChangeModal.user, 
-      role: internalRole,
-    };
-
-    if (internalRole === 'CLINIC_STAFF') {
-      updatedUser.clinicId = roleChangeModal.clinicId;
-      updatedUser.department = roleChangeModal.department;
-    } else {
-      delete updatedUser.clinicId;
-      delete updatedUser.department;
+    try {
+      await adminUpdateUser(roleChangeModal.user.id, {
+        role,
+        clinicId: role === 'CLINIC_STAFF' ? Number(roleChangeModal.clinicId) : null,
+        department: role === 'CLINIC_STAFF' ? roleChangeModal.department : null,
+      });
+      await loadUsers();
+      setRoleChangeModal({ isOpen: false, user: null, role: 'Pet Owner', clinicId: '', department: '' });
+    } catch (error) {
+      alert(error.message);
     }
-
-    const updated = users.map(u => u.id === updatedUser.id ? updatedUser : u);
-    saveUsers(updated);
-    setRoleChangeModal({ isOpen: false, user: null, role: 'Pet Owner', clinicId: '', department: '' });
   };
 
-  const handleStatusToggle = (user) => {
+  const handleStatusToggle = async (user) => {
     if (user.email === currentUserEmail) return; // Prevent self-suspend
-    const newStatus = user.status === 'Active' ? 'Suspended' : 'Active';
-    const updated = users.map(u => u.id === user.id ? { ...u, status: newStatus } : u);
-    saveUsers(updated);
+    try {
+      await adminUpdateUser(user.id, { status: user.status === 'Active' ? 'SUSPENDED' : 'ACTIVE' });
+      await loadUsers();
+    } catch (error) {
+      alert(error.message);
+    }
   };
 
   const handleDeleteRequest = (user) => {
@@ -155,10 +134,14 @@ export default function AdminUsers() {
     setIsDeleteModalOpen(true);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (userToDelete) {
-      const updated = users.filter(u => u.id !== userToDelete.id);
-      saveUsers(updated);
+      try {
+        await adminDeleteUser(userToDelete.id);
+        await loadUsers();
+      } catch (error) {
+        alert(error.message);
+      }
     }
     setIsDeleteModalOpen(false);
     setUserToDelete(null);
@@ -167,7 +150,7 @@ export default function AdminUsers() {
   // Filtering and Sorting
   let displayedUsers = users.filter(u => {
     const matchesSearch = u.name.toLowerCase().includes(searchQuery.toLowerCase()) || u.email.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesRole = roleFilter === 'All' || u.role === roleFilter;
+    const matchesRole = roleFilter === 'All' || u.roleLabel === roleFilter;
     const matchesStatus = statusFilter === 'All' || u.status === statusFilter;
     return matchesSearch && matchesRole && matchesStatus;
   });
@@ -182,9 +165,9 @@ export default function AdminUsers() {
 
   const stats = {
     total: users.length,
-    owners: users.filter(u => u.role === 'Pet Owner').length,
-    staff: users.filter(u => u.role === 'Staff').length,
-    admins: users.filter(u => u.role === 'Admin').length,
+    owners: users.filter(u => u.role === 'PET_OWNER').length,
+    staff: users.filter(u => u.role === 'CLINIC_STAFF').length,
+    admins: users.filter(u => u.role === 'ADMIN').length,
     active: users.filter(u => u.status === 'Active').length,
   };
 
@@ -268,7 +251,7 @@ export default function AdminUsers() {
                     </td>
                     <td>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span>{user.role === 'CLINIC_STAFF' ? 'Staff' : (user.role === 'ADMIN' ? 'Admin' : 'Pet Owner')}</span>
+                        <span>{user.roleLabel}</span>
                         {!isSelf && (
                           <button 
                             className="icon-btn" 

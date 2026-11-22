@@ -36,6 +36,8 @@ const AI_PICKS = [
 ];
 
 import PetImage from '../components/PetImage';
+import { getMyPets, formatWeight } from '../services/dataService';
+import { getCurrentUser } from '../services/authService';
 
 function Dashboard() {
   const [pets, setPets] = useState([]);
@@ -44,34 +46,29 @@ function Dashboard() {
   const [activePetIndex, setActivePetIndex] = useState(0);
 
   useEffect(() => {
-    // Ensure DB is initialized and migrated
-    import('../services/dataService').then(({ initializeDB, getPetsByOwnerId }) => {
-      initializeDB();
+    let cancelled = false;
+    setUserName(getCurrentUser().fullName || 'Pet Owner');
 
-      const fetchPetsAndUser = () => {
-        const savedUser = JSON.parse(localStorage.getItem('petwise-user') || '{}');
-        
-        // Use the strict ownership rule
-        const userPets = savedUser.id ? getPetsByOwnerId(savedUser.id) : [];
-
+    // The server returns only the logged-in user's pets
+    getMyPets()
+      .then((userPets) => {
+        if (cancelled) return;
         setPets(userPets);
-        setUserName(savedUser.fullName || 'Pet Owner');
-
         let index = Number(localStorage.getItem('petwise-active-pet-index') || 0);
         if (index >= userPets.length) index = 0;
         setActivePetIndex(index);
-      };
+      })
+      .catch((error) => console.error('Failed to load pets', error));
 
-      const handlePetChange = () => {
-        let index = Number(localStorage.getItem('petwise-active-pet-index') || 0);
-        setActivePetIndex(index);
-      };
+    const handlePetChange = () => {
+      setActivePetIndex(Number(localStorage.getItem('petwise-active-pet-index') || 0));
+    };
+    window.addEventListener('pet-changed', handlePetChange);
 
-      fetchPetsAndUser();
-      window.addEventListener('pet-changed', handlePetChange);
-
-      return () => window.removeEventListener('pet-changed', handlePetChange);
-    });
+    return () => {
+      cancelled = true;
+      window.removeEventListener('pet-changed', handlePetChange);
+    };
   }, []);
 
   const activePet = pets[activePetIndex] || pets[0] || { name: 'Your Pet', species: 'Pet', breed: '', age: '' };
@@ -127,7 +124,7 @@ function Dashboard() {
                       <h3>{activePet.name}</h3>
                       <span className="status-pill">{activePet.species}</span>
                     </div>
-                    <p className="dash-pet-sub">{activePet.breed} · {activePet.age} · {activePet.weight || '4.2 kg'}</p>
+                    <p className="dash-pet-sub">{activePet.breed} · {activePet.age} · {formatWeight(activePet, '—')}</p>
                     <div className="dash-pet-stats">
                       <div>
                         <strong>{activePet.healthScore || 87}%</strong>

@@ -41,7 +41,7 @@ function App() {
       const petwiseKeys = keys.filter(k => k.startsWith('petwise'));
       petwiseKeys.forEach(k => localStorage.removeItem(k));
       localStorage.setItem('petwise_fresh_start', 'true');
-      window.location.href = '/register';
+      window.location.href = import.meta.env.BASE_URL + 'signup';
     }
   }, []);
 
