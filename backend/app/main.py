@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.database import get_db
-from app.routers import auth, clinics, pets, users
+from app.routers import appointments, auth, clinics, medical, pets, reminders, staff, users
 from app.seed import seed
 
 logger = logging.getLogger("petwise")
@@ -25,7 +25,7 @@ async def lifespan(_app: FastAPI):
 app = FastAPI(
     title="PetWise API",
     description="Backend for the PetWise pet-care platform (Kinneret College final project).",
-    version="0.2.0",
+    version="0.3.0",
     lifespan=lifespan,
 )
 
@@ -42,6 +42,12 @@ app.include_router(auth.router, prefix=API_PREFIX)
 app.include_router(users.router, prefix=API_PREFIX)
 app.include_router(clinics.router, prefix=API_PREFIX)
 app.include_router(pets.router, prefix=API_PREFIX)
+app.include_router(medical.vaccinations_router, prefix=API_PREFIX)
+app.include_router(medical.treatments_router, prefix=API_PREFIX)
+app.include_router(medical.weights_router, prefix=API_PREFIX)
+app.include_router(reminders.router, prefix=API_PREFIX)
+app.include_router(appointments.router, prefix=API_PREFIX)
+app.include_router(staff.router, prefix=API_PREFIX)
 
 
 @app.get("/api/health", tags=["Health"])

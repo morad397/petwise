@@ -2,7 +2,7 @@
 
 Pet-care platform: final project, Software Engineering, Kinneret Academic College.
 
-- **Frontend:** React + Vite (this folder), hosted on GitHub Pages
+- **Frontend:** React + Vite (this folder), hosted on Vercel (https://petwise-delta.vercel.app) and GitHub Pages
 - **Backend:** Python FastAPI ([backend/](backend/README.md)), hosted on Render
 - **Database:** MongoDB Atlas (NoSQL, cloud)
 
@@ -41,7 +41,7 @@ Locally the frontend calls `http://localhost:8000/api` (`.env.development`).
 | Module | Status |
 |---|---|
 | 1. Authentication, roles, users, clinics, pets | Connected to MongoDB |
-| 2. Medical records, reminders, appointments | Still localStorage |
-| 3. Clinic staff views | Still localStorage |
+| 2. Medical records, reminders, appointments | Connected to MongoDB |
+| 3. Clinic staff views | Appointments + patients connected; schedule blocking still local |
 | 4. Shop, orders, community | Still localStorage |
 | 5. Admin analytics, AI, notifications | Still localStorage |

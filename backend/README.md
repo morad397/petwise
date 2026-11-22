@@ -28,6 +28,11 @@ backend/
 | `users` | User, UserRole, Staff | full_name, email (unique), password_hash, role, clinic_id, department |
 | `clinics` | Clinic / VeterinaryService / Schedule | name, city, opening_hours[], services[], appointment_duration_minutes |
 | `pets` | Pet | owner_id → users, name, species, breed, age, weight_kg, image_url |
+| `vaccinations` | VaccinationRecord | pet_id, vaccine_name, date_administered, next_due_date, veterinarian |
+| `treatments` | TreatmentRecord | pet_id, kind (VET_VISIT / MEDICATION), diagnosis, treatment_date, medication, appointment_id |
+| `weights` | WeightRecord | pet_id, weight_kg, recorded_date |
+| `reminders` | Reminder | user_id, pet_id, type, title, due_date, is_completed, source (set when created automatically) |
+| `appointments` | Appointment / Schedule | user_id, pet_id, clinic_id, service, appointment_date, appointment_time, status, suggested_date/time, staff_note |
 | `counters` | — | next id for each collection |
 
 Every document has the BaseEntity fields: `_id`, `created_at`, `updated_at`, `status`.
@@ -96,5 +101,34 @@ about a minute while it wakes up, so open the site a minute before a demo.
 | GET | `/api/pets/{id}` | owner / admin | One pet (403 for anyone else) |
 | PUT | `/api/pets/{id}` | owner / admin | Update a pet |
 | DELETE | `/api/pets/{id}` | owner / admin | Delete a pet |
+
+### Module 2: medical records, reminders, appointments
+
+| Method | Path | Who | What |
+|---|---|---|---|
+| GET/POST | `/api/pets/{id}/vaccinations` | owner, admin, clinic staff* | List / add vaccinations (a next due date creates a reminder) |
+| PUT/DELETE | `/api/pets/{id}/vaccinations/{recordId}` | owner, admin, staff who added it | Change / delete |
+| GET/POST | `/api/pets/{id}/treatments` | owner, admin, clinic staff* | Vet visits and medications |
+| PUT/DELETE | `/api/pets/{id}/treatments/{recordId}` | owner, admin, staff who added it | Change / delete |
+| GET/POST | `/api/pets/{id}/weights` | owner, admin, clinic staff* | Weight entries (pet weight follows the newest) |
+| PUT/DELETE | `/api/pets/{id}/weights/{recordId}` | owner, admin, staff who added it | Change / delete |
+| GET/POST | `/api/reminders` | logged in | My reminders / add one |
+| PUT/DELETE | `/api/reminders/{id}` | owner of the reminder | Change / delete |
+| POST | `/api/reminders/{id}/complete` | owner of the reminder | Mark done |
+| POST | `/api/reminders/{id}/snooze` | owner of the reminder | Move later by N minutes |
+| GET | `/api/clinics/{id}/slots?date=YYYY-MM-DD` | anyone | Free times (no double booking) |
+| GET | `/api/appointments` | logged in | Owner: own · staff: own clinic · admin: all |
+| POST | `/api/appointments` | pet owner | Book (status PENDING) |
+| PUT | `/api/appointments/{id}` | pet owner | Change request (back to PENDING) |
+| POST | `/api/appointments/{id}/cancel` | pet owner | Cancel |
+| POST | `/api/appointments/{id}/accept-suggestion` | pet owner | Accept the clinic's suggested time |
+| POST | `/api/appointments/{id}/status` | staff of that clinic, admin | CONFIRMED / REJECTED / RESCHEDULE_REQUESTED / IN_PROGRESS / COMPLETED |
+| GET | `/api/staff/patients` | clinic staff | Pets with appointments at my clinic |
+
+\* clinic staff only for pets that have an appointment at their own clinic.
+
+Appointment flow: `PENDING` → `CONFIRMED` (owner gets a reminder) → `IN_PROGRESS` → `COMPLETED`
+(saved as a vet visit in the pet's history). Staff can also `REJECTED` or suggest a new time
+(`RESCHEDULE_REQUESTED`), which the owner accepts. Owners can cancel while it is open.
 
 Send the token on protected calls as the header `Authorization: Bearer <accessToken>`.

@@ -19,16 +19,19 @@ const RECENT_ACTIVITY = [
   { id: 4, icon: '📦', label: 'Food order delivered', time: '2 weeks ago' },
 ];
 
-const UPCOMING = [
-  { id: 1, title: 'Annual Vaccination', date: '2026-07-02 · 10:00 AM', with: 'Dr. Sarah Chen', status: 'confirmed' },
-  { id: 2, title: 'Dental Cleaning', date: '2026-07-08 · 2:30 PM', with: 'Dr. James Park', status: 'pending' },
-];
+const REMINDER_ICONS = {
+  FEEDING: '🍖', MEDICATION: '💊', VACCINATION: '💉', VET_VISIT: '🩺', WALK: '🐕', APPOINTMENT: '📅', OTHER: '🔔',
+};
 
-const DUE_REMINDERS = [
-  { id: 1, icon: '💉', label: 'Rabies Booster', daysLeft: '21d' },
-  { id: 2, icon: '🐛', label: 'Flea & Tick Prevention', daysLeft: '7d' },
-  { id: 3, icon: '🍖', label: 'Salmon Dry Food Restock', daysLeft: '6d' },
-];
+// "in 3d" / "today" / "overdue"
+const daysLeft = (iso) => {
+  const start = new Date(); start.setHours(0, 0, 0, 0);
+  const due = new Date(iso); due.setHours(0, 0, 0, 0);
+  const days = Math.round((due - start) / 86400000);
+  if (days < 0) return 'overdue';
+  if (days === 0) return 'today';
+  return `${days}d`;
+};
 
 const AI_PICKS = [
   { id: 1, image: heroImage, label: 'Premium Salmon Dry Food', price: '38.99' },
@@ -36,18 +39,21 @@ const AI_PICKS = [
 ];
 
 import PetImage from '../components/PetImage';
-import { getMyPets, formatWeight } from '../services/dataService';
+import { getMyPets, formatWeight, getAppointments } from '../services/dataService';
 import { getCurrentUser } from '../services/authService';
+import { getReminders } from '../services/reminderService';
+import { formatDate, todayIso } from '../services/medicalService';
 
 function Dashboard() {
   const [pets, setPets] = useState([]);
-  const [userName, setUserName] = useState('Pet Owner');
+  const [userName] = useState(() => getCurrentUser().fullName || 'Pet Owner');
   const [checklist, setChecklist] = useState(DEFAULT_CHECKLIST);
   const [activePetIndex, setActivePetIndex] = useState(0);
+  const [appointments, setAppointments] = useState([]);
+  const [reminders, setReminders] = useState([]);
 
   useEffect(() => {
     let cancelled = false;
-    setUserName(getCurrentUser().fullName || 'Pet Owner');
 
     // The server returns only the logged-in user's pets
     getMyPets()
@@ -59,6 +65,12 @@ function Dashboard() {
         setActivePetIndex(index);
       })
       .catch((error) => console.error('Failed to load pets', error));
+    getAppointments()
+      .then((list) => !cancelled && setAppointments(list))
+      .catch((error) => console.error('Failed to load appointments', error));
+    getReminders({ includeCompleted: false })
+      .then((list) => !cancelled && setReminders(list))
+      .catch((error) => console.error('Failed to load reminders', error));
 
     const handlePetChange = () => {
       setActivePetIndex(Number(localStorage.getItem('petwise-active-pet-index') || 0));
@@ -73,8 +85,24 @@ function Dashboard() {
 
   const activePet = pets[activePetIndex] || pets[0] || { name: 'Your Pet', species: 'Pet', breed: '', age: '' };
   const recentActivity = RECENT_ACTIVITY;
-  const upcoming = UPCOMING;
-  const dueReminders = DUE_REMINDERS;
+  const today = todayIso();
+  const upcomingAppointments = appointments.filter(
+    (a) => a.appointmentDate >= today && ['PENDING', 'CONFIRMED', 'RESCHEDULE_REQUESTED'].includes(a.status)
+  );
+  const upcoming = upcomingAppointments.slice(0, 3).map((a) => ({
+    id: a.id,
+    title: `${a.service} — ${a.petName}`,
+    date: `${formatDate(a.appointmentDate)} · ${a.appointmentTime}`,
+    with: a.clinicName,
+    status: a.status === 'CONFIRMED' ? 'confirmed' : 'pending',
+  }));
+  const dueReminders = reminders.slice(0, 4).map((r) => ({
+    id: r.id,
+    icon: REMINDER_ICONS[r.type] || '🔔',
+    label: r.petName && !r.title.includes(r.petName) ? `${r.title} (${r.petName})` : r.title,
+    daysLeft: daysLeft(r.dueDate),
+  }));
+  const nextVisit = upcomingAppointments.find((a) => String(a.petId) === String(activePet.id));
   const aiPicks = AI_PICKS;
 
   const toggleChecklistItem = (id) => {
@@ -131,7 +159,7 @@ function Dashboard() {
                         <span>Health Score</span>
                       </div>
                       <div>
-                        <strong>{activePet.nextVet || 'Jul 2'}</strong>
+                        <strong>{nextVisit ? formatDate(nextVisit.appointmentDate).replace(/, \d{4}$/, '') : '—'}</strong>
                         <span>Next Vet</span>
                       </div>
                       <div>
@@ -217,6 +245,7 @@ function Dashboard() {
                     <Link to="/appointments" className="dash-link">View all</Link>
                   </div>
                   <ul className="dash-upcoming-list">
+                    {upcoming.length === 0 && <li><small>No upcoming appointments.</small></li>}
                     {upcoming.map((item) => (
                       <li key={item.id}>
                         <div>
@@ -238,6 +267,7 @@ function Dashboard() {
                     <Link to="/reminders" className="dash-link">View all</Link>
                   </div>
                   <ul className="dash-due-list">
+                    {dueReminders.length === 0 && <li><small>No reminders due.</small></li>}
                     {dueReminders.map((item) => (
                       <li key={item.id}>
                         <span className="dash-activity-icon">{item.icon}</span>

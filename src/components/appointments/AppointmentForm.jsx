@@ -2,115 +2,113 @@ import { useState, useEffect } from 'react';
 import { getMyPets, getClinics, getAvailableSlots } from '../../services/dataService';
 import { Stethoscope } from 'lucide-react';
 
-export default function AppointmentForm({ 
-  initialData, 
-  onSave, 
-  onCancel, 
-  currentUser
-}) {
+const EMPTY_FORM = {
+  petId: '',
+  clinicId: '',
+  serviceId: '',
+  appointmentDate: '',
+  appointmentTime: '',
+  notes: ''
+};
+
+// initialData: an appointment from the API when managing an existing one
+// onSave(payload): async; may throw an error whose message is shown in the form
+export default function AppointmentForm({ initialData, onSave, onCancel }) {
   const [pets, setPets] = useState([]);
   const [clinics, setClinics] = useState([]);
-  const [availableServices, setAvailableServices] = useState([]);
   const [availableSlots, setAvailableSlots] = useState([]);
   const [slotStatus, setSlotStatus] = useState("CLINIC_NOT_SELECTED");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState('');
 
-  const [form, setForm] = useState({
-    petId: '',
-    clinicId: '',
-    serviceId: '',
-    appointmentDate: '',
-    appointmentTime: '',
-    notes: ''
-  });
+  const [form, setForm] = useState(() =>
+    initialData
+      ? {
+          petId: String(initialData.petId),
+          clinicId: String(initialData.clinicId),
+          serviceId: initialData.service || '',
+          appointmentDate: initialData.appointmentDate || '',
+          appointmentTime: initialData.appointmentTime || '',
+          notes: initialData.notes || ''
+        }
+      : EMPTY_FORM
+  );
 
-  // Load basic data
+  // Load the user's pets and the active clinics
   useEffect(() => {
-    if (currentUser.id) {
-      getMyPets()
-        .then(setPets)
-        .catch((error) => console.error('Failed to load pets', error));
-      getClinics()
-        .then((list) => setClinics(list.filter(c => c.status === 'ACTIVE')))
-        .catch((error) => console.error('Failed to load clinics', error));
-    }
+    getMyPets()
+      .then(setPets)
+      .catch((e) => setError(e.message));
+    getClinics()
+      .then((list) => setClinics(list.filter(c => c.status === 'ACTIVE')))
+      .catch((e) => setError(e.message));
+  }, []);
 
-    if (initialData) {
-      setForm({
-        petId: initialData.petId || '',
-        clinicId: initialData.clinicId || '',
-        serviceId: initialData.serviceId || initialData.title || '',
-        appointmentDate: initialData.appointmentDate || '',
-        appointmentTime: initialData.appointmentTime || '',
-        notes: initialData.notes || initialData.detail || ''
-      });
-    }
-  }, [currentUser, initialData]);
+  const selectedClinic = clinics.find(c => String(c.id) === String(form.clinicId));
+  const availableServices = selectedClinic ? selectedClinic.services || [] : [];
 
-  // Handle clinic selection changes
+  // Ask the server which times are free whenever the clinic or date changes
   useEffect(() => {
-    if (form.clinicId) {
-      const clinic = clinics.find(c => String(c.id) === String(form.clinicId));
-      if (clinic) {
-        setAvailableServices(clinic.services || []);
-      } else {
-        setAvailableServices([]);
-      }
-    }
-  }, [form.clinicId, clinics]);
+    if (!form.clinicId || !form.appointmentDate) return;
+    let cancelled = false;
+    getAvailableSlots(form.clinicId, form.appointmentDate, initialData?.id)
+      .then((result) => {
+        if (cancelled) return;
+        setSlotStatus(result.status);
+        setAvailableSlots(result.slots);
+      })
+      .catch((e) => !cancelled && setError(e.message));
+    return () => {
+      cancelled = true;
+    };
+  }, [form.clinicId, form.appointmentDate, initialData?.id]);
 
-  // Handle date selection changes for slot availability
-  useEffect(() => {
-    if (form.clinicId && form.appointmentDate) {
-      const clinic = clinics.find(c => String(c.id) === String(form.clinicId));
-      const result = getAvailableSlots(clinic, form.appointmentDate);
-      setSlotStatus(result.status);
-      setAvailableSlots(result.slots);
-    } else if (!form.clinicId) {
-      setSlotStatus("CLINIC_NOT_SELECTED");
-      setAvailableSlots([]);
-    } else if (!form.appointmentDate) {
-      setSlotStatus("DATE_NOT_SELECTED");
-      setAvailableSlots([]);
-    }
-  }, [form.clinicId, form.appointmentDate, clinics]);
+  const shownSlotStatus = !form.clinicId
+    ? "CLINIC_NOT_SELECTED"
+    : !form.appointmentDate
+      ? "DATE_NOT_SELECTED"
+      : slotStatus;
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setForm(prev => ({ ...prev, [name]: value }));
+    setForm(prev => ({
+      ...prev,
+      [name]: value,
+      // a new date means the old time may no longer be free
+      ...(name === 'appointmentDate' ? { appointmentTime: '' } : {})
+    }));
   };
 
   const isFormValid = form.petId && form.clinicId && form.serviceId && form.appointmentDate && form.appointmentTime;
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!isFormValid) return;
-
-    // Validate past dates
-    const selectedDate = new Date(`${form.appointmentDate}T${form.appointmentTime}`);
-    if (selectedDate < new Date()) {
-      alert("Cannot schedule appointments in the past.");
-      return;
-    }
-
+    setError('');
     setIsSubmitting(true);
-    
-    // Simulate slight network delay
-    setTimeout(() => {
-      const selectedPet = pets.find(p => String(p.id) === String(form.petId));
-
-      onSave({
-        ...form,
-        title: form.serviceId, // map back to UI format
-        petName: selectedPet ? selectedPet.name : '',
-        // Saved with the appointment so clinic staff can see the patient
-        // (until the appointments API exists in module 2).
-        petSpecies: selectedPet ? selectedPet.species : '',
-        ownerName: currentUser.fullName || currentUser.email,
-        detail: form.notes,
+    try {
+      await onSave({
+        petId: Number(form.petId),
+        clinicId: Number(form.clinicId),
+        service: form.serviceId,
+        appointmentDate: form.appointmentDate,
+        appointmentTime: form.appointmentTime,
+        notes: form.notes.trim() || null
       });
+    } catch (err) {
+      // e.g. "This time is not available" if someone booked it a moment ago
+      setError(err.message);
+      if (form.clinicId && form.appointmentDate) {
+        getAvailableSlots(form.clinicId, form.appointmentDate, initialData?.id)
+          .then((result) => {
+            setSlotStatus(result.status);
+            setAvailableSlots(result.slots);
+          })
+          .catch(() => {});
+      }
+    } finally {
       setIsSubmitting(false);
-    }, 500);
+    }
   };
 
   return (
@@ -120,6 +118,7 @@ export default function AppointmentForm({
       </div>
 
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        {error && <p style={{ color: '#d93025', padding: '12px', background: '#fce8e6', borderRadius: '8px', margin: 0 }}>{error}</p>}
         
         <div className="form-group">
           <span>Select Pet *</span>
@@ -188,30 +187,30 @@ export default function AppointmentForm({
             name="appointmentDate"
             value={form.appointmentDate} 
             onChange={handleChange}
-            min={new Date().toISOString().split('T')[0]} // Prevent past dates in picker
+            min={new Date().toLocaleDateString('en-CA')} // today in the user's time zone
             className="input-field"
           />
         </div>
 
         <div className="form-group">
           <span>Time *</span>
-          {slotStatus === "CLINIC_NOT_SELECTED" && (
+          {shownSlotStatus === "CLINIC_NOT_SELECTED" && (
             <p style={{ color: '#64748b' }}>Select a clinic first to view available times.</p>
           )}
-          {slotStatus === "DATE_NOT_SELECTED" && (
+          {shownSlotStatus === "DATE_NOT_SELECTED" && (
             <p style={{ color: '#64748b' }}>Select a date to view available times.</p>
           )}
-          {slotStatus === "CLINIC_CLOSED" && (
+          {shownSlotStatus === "CLINIC_CLOSED" && (
             <p style={{ color: '#d93025', padding: '12px', background: '#fce8e6', borderRadius: '8px' }}>
               This clinic is closed on the selected date.
             </p>
           )}
-          {slotStatus === "FULLY_BOOKED" && (
+          {shownSlotStatus === "FULLY_BOOKED" && (
             <p style={{ color: '#d93025', padding: '12px', background: '#fce8e6', borderRadius: '8px' }}>
               No available slots for this date.
             </p>
           )}
-          {slotStatus === "AVAILABLE" && (
+          {shownSlotStatus === "AVAILABLE" && (
             <select required name="appointmentTime" value={form.appointmentTime} onChange={handleChange} className="input-field">
               <option value="">-- Choose a time --</option>
               {availableSlots.map(slot => (

@@ -1,13 +1,11 @@
 // dataService.js
-// Pets and clinics come from the FastAPI backend (MySQL).
-// Appointments are still kept in localStorage until the appointments API is built (module 2).
+// Pets and clinics come from the FastAPI backend (MongoDB).
+// Appointments, medical records and reminders also come from the API (module 2).
 
 import { apiRequest } from './api';
 
 const DB_KEYS = {
   USERS: 'petwise-users',
-  PETS: 'petwise-pets',
-  APPOINTMENTS: 'petwise-appointments'
 };
 
 // Helper to read from localStorage
@@ -22,53 +20,6 @@ const readDB = (key) => {
 // Helper to write to localStorage
 const writeDB = (key, data) => {
   localStorage.setItem(key, JSON.stringify(data));
-};
-
-// --- Migration ---
-const migrateLegacyAppointments = () => {
-  const isMigrated = localStorage.getItem('petwise_appointment_migration_v1');
-  if (isMigrated === 'true') return;
-
-  const appointments = readDB(DB_KEYS.APPOINTMENTS);
-  const pets = readDB(DB_KEYS.PETS);
-  
-  let changed = false;
-
-  const updatedAppointments = appointments.map(app => {
-    let modifiedApp = { ...app };
-    if (!modifiedApp.petId) {
-      if (modifiedApp.patientName) {
-        const foundPet = pets.find(p => p.name === modifiedApp.patientName);
-        if (foundPet) {
-          modifiedApp.petId = foundPet.id;
-          changed = true;
-        }
-      }
-    }
-    return modifiedApp;
-  });
-
-  if (changed) {
-    writeDB(DB_KEYS.APPOINTMENTS, updatedAppointments);
-  }
-
-  localStorage.setItem('petwise_appointment_migration_v1', 'true');
-};
-
-// --- Initialization ---
-// Clinics now live in MySQL (see backend/app/seed.py).
-export const initializeDB = () => {
-  const isReset = localStorage.getItem('petwise_development_reset_completed');
-
-  // Ensure appointments exist
-  const appointments = readDB(DB_KEYS.APPOINTMENTS);
-  if (!appointments || !Array.isArray(appointments)) {
-    writeDB(DB_KEYS.APPOINTMENTS, []);
-  }
-
-  if (isReset !== 'true') {
-    migrateLegacyAppointments();
-  }
 };
 
 // --- Reset ---
@@ -115,7 +66,6 @@ export const resetDevelopmentData = (preserveAdminId) => {
   }
   
   localStorage.setItem('petwise_development_reset_completed', 'true');
-  initializeDB();
   return true;
 };
 
@@ -156,131 +106,37 @@ export const updateClinic = (clinicId, clinicData) =>
   apiRequest(`/clinics/${encodeURIComponent(clinicId)}`, { method: 'PUT', body: clinicData });
 
 
-// --- Appointments ---
-export const getAppointmentsByUserId = (userId) => {
-  const appointments = readDB(DB_KEYS.APPOINTMENTS);
-  return appointments.filter(apt => apt.userId === userId);
-};
+// --- Appointments (API) ---
+// Owners get their own, clinic staff their clinic's, admins all (decided by the server).
+export const getAppointments = (status) =>
+  apiRequest(status ? `/appointments?status=${encodeURIComponent(status)}` : '/appointments');
 
-export const getAppointmentsByClinicId = (clinicId) => {
-  const appointments = readDB(DB_KEYS.APPOINTMENTS);
-  return appointments.filter(apt => String(apt.clinicId) === String(clinicId));
-};
+export const createAppointment = (data) => apiRequest('/appointments', { method: 'POST', body: data });
 
-export const createAppointment = (appointmentData) => {
-  const appointments = readDB(DB_KEYS.APPOINTMENTS);
-  const newApt = {
-    ...appointmentData,
-    id: 'apt-' + Date.now(),
-    status: 'PENDING',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  };
-  appointments.push(newApt);
-  writeDB(DB_KEYS.APPOINTMENTS, appointments);
-  return newApt;
-};
+// Owner changes a request; it goes back to PENDING.
+export const updateAppointment = (appointmentId, data) =>
+  apiRequest(`/appointments/${appointmentId}`, { method: 'PUT', body: data });
 
-export const updateAppointment = (appointmentId, appointmentData) => {
-  const appointments = readDB(DB_KEYS.APPOINTMENTS);
-  const index = appointments.findIndex(a => a.id === appointmentId);
-  if (index !== -1) {
-    appointments[index] = { 
-      ...appointments[index], 
-      ...appointmentData,
-      updatedAt: new Date().toISOString()
-    };
-    writeDB(DB_KEYS.APPOINTMENTS, appointments);
-    return appointments[index];
+export const cancelAppointment = (appointmentId) =>
+  apiRequest(`/appointments/${appointmentId}/cancel`, { method: 'POST' });
+
+export const acceptSuggestedTime = (appointmentId) =>
+  apiRequest(`/appointments/${appointmentId}/accept-suggestion`, { method: 'POST' });
+
+// Clinic staff: CONFIRMED | REJECTED | RESCHEDULE_REQUESTED | IN_PROGRESS | COMPLETED
+export const setAppointmentStatus = (appointmentId, status, extra = {}) =>
+  apiRequest(`/appointments/${appointmentId}/status`, { method: 'POST', body: { status, ...extra } });
+
+export const getClinicPatients = () => apiRequest('/staff/patients');
+
+// --- Availability (API) ---
+// Returns { status: 'AVAILABLE' | 'CLINIC_CLOSED' | 'FULLY_BOOKED', slots: ['09:00', ...] }
+export const getAvailableSlots = (clinicId, date, excludeAppointmentId) => {
+  const params = new URLSearchParams({ date });
+  // For today, hide times that already passed (in the user's own time zone)
+  if (date === new Date().toLocaleDateString('en-CA')) {
+    params.set('after', new Date().toTimeString().slice(0, 5));
   }
-  return null;
-};
-
-export const deleteAppointment = (appointmentId) => {
-  const appointments = readDB(DB_KEYS.APPOINTMENTS);
-  const filtered = appointments.filter(a => a.id !== appointmentId);
-  writeDB(DB_KEYS.APPOINTMENTS, filtered);
-};
-
-// --- Availability ---
-// `clinic` is the clinic object (already loaded from the API by the caller).
-export const getAvailableSlots = (clinic, date) => {
-  if (!clinic) return { status: "CLINIC_NOT_SELECTED", slots: [] };
-  if (!date) return { status: "DATE_NOT_SELECTED", slots: [] };
-  const clinicId = clinic.id;
-  
-  // Convert local date to local dayOfWeek (0 = Sunday, 1 = Monday...)
-  const dateObj = new Date(date + 'T00:00:00'); // Parse explicitly in local time assuming YYYY-MM-DD
-  let dayOfWeek = dateObj.getDay();
-  // Handle invalid dates
-  if (isNaN(dayOfWeek)) {
-    return { status: "DATE_NOT_SELECTED", slots: [] };
-  }
-
-  // Handle old clinics that use `start` and `end` on the top level object
-  // If openingHours is not the array structure, use fallback
-  let daySchedule = null;
-  let isLegacy = false;
-  if (Array.isArray(clinic.openingHours) && clinic.openingHours.length > 0 && typeof clinic.openingHours[0] === 'object') {
-    daySchedule = clinic.openingHours.find(h => Number(h.dayOfWeek) === Number(dayOfWeek));
-  } else if (clinic.openingHours && clinic.openingHours.start && clinic.openingHours.end) {
-    // Legacy clinic
-    isLegacy = true;
-    daySchedule = {
-      isOpen: true,
-      openTime: clinic.openingHours.start,
-      closeTime: clinic.openingHours.end
-    };
-  }
-
-  if (!daySchedule || !daySchedule.isOpen) {
-    return { status: "CLINIC_CLOSED", slots: [] };
-  }
-  
-  const start = daySchedule.openTime;
-  const end = daySchedule.closeTime;
-  const duration = clinic.appointmentDurationMinutes || 30;
-  
-  // Create all possible slots
-  const slots = [];
-  let [currentHour, currentMin] = start.split(':').map(Number);
-  const [endHour, endMin] = end.split(':').map(Number);
-  
-  const endTotalMins = endHour * 60 + endMin;
-  
-  // Determine if selected date is today to block past slots
-  const todayStr = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
-  const isToday = (date === todayStr);
-  const currentNowMins = new Date().getHours() * 60 + new Date().getMinutes();
-
-  while (currentHour * 60 + currentMin + duration <= endTotalMins) {
-    const timeStr = `${currentHour.toString().padStart(2, '0')}:${currentMin.toString().padStart(2, '0')}`;
-    const slotMins = currentHour * 60 + currentMin;
-
-    // Filter out past slots if today
-    if (!(isToday && slotMins <= currentNowMins)) {
-      slots.push(timeStr);
-    }
-    
-    currentMin += duration;
-    if (currentMin >= 60) {
-      currentHour += Math.floor(currentMin / 60);
-      currentMin = currentMin % 60;
-    }
-  }
-
-  // Fetch booked appointments for that clinic and date
-  const appointments = getAppointmentsByClinicId(clinicId);
-  const bookedTimes = appointments
-    .filter(apt => apt.appointmentDate === date && apt.status !== 'CANCELLED' && apt.status !== 'REJECTED')
-    .map(apt => apt.appointmentTime);
-    
-  // Return slots that are NOT booked
-  const availableSlots = slots.filter(slot => !bookedTimes.includes(slot));
-
-  if (availableSlots.length === 0) {
-    return { status: "FULLY_BOOKED", slots: [] };
-  }
-
-  return { status: "AVAILABLE", slots: availableSlots };
+  if (excludeAppointmentId) params.set('exclude', excludeAppointmentId);
+  return apiRequest(`/clinics/${encodeURIComponent(clinicId)}/slots?${params}`, { auth: false });
 };

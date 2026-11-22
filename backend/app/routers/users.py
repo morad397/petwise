@@ -3,6 +3,7 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from pymongo.database import Database
 
+from app.core.access import delete_pet_data
 from app.core.deps import require_roles
 from app.core.security import hash_password
 from app.database import get_db, new_document, now, to_out
@@ -81,5 +82,9 @@ def delete_user(user_id: int, db: Database = Depends(get_db), admin: dict = Depe
     if user["_id"] == admin["_id"]:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "You cannot delete your own account.")
     db.users.delete_one({"_id": user_id})
-    db.pets.delete_many({"owner_id": user_id})  # a user's pets go with them
+    # A user's pets, their records and the user's reminders go with them
+    pet_ids = [p["_id"] for p in db.pets.find({"owner_id": user_id}, {"_id": 1})]
+    db.pets.delete_many({"owner_id": user_id})
+    delete_pet_data(db, pet_ids)
+    db.reminders.delete_many({"user_id": user_id})
     return Response(status_code=status.HTTP_204_NO_CONTENT)

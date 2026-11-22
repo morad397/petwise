@@ -1,45 +1,60 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
 import AppointmentForm from '../components/appointments/AppointmentForm';
 import StatusBadge from '../components/admin/StatusBadge';
 import ConfirmationModal from '../components/admin/ConfirmationModal';
-import { getAppointmentsByUserId, createAppointment, updateAppointment, deleteAppointment, getMyPets, initializeDB } from '../services/dataService';
+import {
+  getAppointments,
+  createAppointment,
+  updateAppointment,
+  cancelAppointment,
+  acceptSuggestedTime,
+} from '../services/dataService';
+import { formatDate } from '../services/medicalService';
+
+const OWNER_EDITABLE = ['PENDING', 'CONFIRMED', 'RESCHEDULE_REQUESTED'];
+
+const STATUS_LABELS = {
+  PENDING: 'Waiting for clinic',
+  CONFIRMED: 'Confirmed',
+  RESCHEDULE_REQUESTED: 'New time suggested',
+  REJECTED: 'Rejected',
+  IN_PROGRESS: 'In progress',
+  COMPLETED: 'Completed',
+  CANCELLED: 'Cancelled',
+};
+
+const badgeType = (status) =>
+  status === 'CONFIRMED' || status === 'COMPLETED' || status === 'IN_PROGRESS'
+    ? 'success'
+    : status === 'PENDING'
+      ? 'warning'
+      : status === 'RESCHEDULE_REQUESTED'
+        ? 'info'
+        : 'danger';
 
 function Appointments() {
   const [appointments, setAppointments] = useState([]);
-  const [currentUser, setCurrentUser] = useState({});
-  const [petName, setPetName] = useState('Your Pet');
-  
-  // States
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
+
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingAppointment, setEditingAppointment] = useState(null);
-  
+
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
   const [appointmentToCancel, setAppointmentToCancel] = useState(null);
 
+  const loadAppointments = () =>
+    getAppointments()
+      .then((list) => {
+        setAppointments(list);
+        setError('');
+      })
+      .catch((e) => setError(e.message))
+      .finally(() => setIsLoading(false));
+
   useEffect(() => {
-    // Ensure mock DB is initialized
-    initializeDB();
-
-    const savedUser = JSON.parse(localStorage.getItem('petwise-user') || '{}');
-    setCurrentUser(savedUser);
-
-    if (savedUser.id) {
-      loadAppointments(savedUser.id);
-      
-      getMyPets()
-        .then((userPets) => {
-          if (userPets.length > 0) setPetName(userPets[0].name);
-        })
-        .catch((error) => console.error('Failed to load pets', error));
-    }
+    loadAppointments();
   }, []);
-
-  const loadAppointments = (userId) => {
-    const apts = getAppointmentsByUserId(userId);
-    // Sort by creation date or appointment date
-    setAppointments(apts);
-  };
 
   const handleOpenBook = () => {
     setEditingAppointment(null);
@@ -51,22 +66,26 @@ function Appointments() {
     setIsFormOpen(true);
   };
 
-  const handleSaveForm = (formData) => {
+  // Errors are thrown back to the form, which shows them
+  const handleSaveForm = async (payload) => {
     if (editingAppointment) {
-      updateAppointment(editingAppointment.id, { 
-        ...formData, 
-        status: 'PENDING' // Edits require re-confirmation
-      });
-      alert("Your changes were submitted to the clinic for confirmation.");
+      await updateAppointment(editingAppointment.id, payload);
+      alert('Your changes were sent to the clinic for confirmation.');
     } else {
-      createAppointment({
-        ...formData,
-        userId: currentUser.id
-      });
-      alert("Appointment requested successfully!");
+      await createAppointment(payload);
+      alert('Appointment requested! The clinic will confirm it soon.');
     }
-    loadAppointments(currentUser.id);
     setIsFormOpen(false);
+    loadAppointments();
+  };
+
+  const handleAcceptSuggestion = async (apt) => {
+    try {
+      await acceptSuggestedTime(apt.id);
+      loadAppointments();
+    } catch (e) {
+      alert(e.message);
+    }
   };
 
   const handleCancelRequest = (apt) => {
@@ -74,82 +93,110 @@ function Appointments() {
     setIsCancelModalOpen(true);
   };
 
-  const confirmCancel = () => {
+  const confirmCancel = async () => {
     if (appointmentToCancel) {
-      updateAppointment(appointmentToCancel.id, { status: 'CANCELLED' });
-      loadAppointments(currentUser.id);
+      try {
+        await cancelAppointment(appointmentToCancel.id);
+        loadAppointments();
+      } catch (e) {
+        alert(e.message);
+      }
     }
     setIsCancelModalOpen(false);
     setAppointmentToCancel(null);
   };
 
+  const upcoming = appointments.filter((a) => OWNER_EDITABLE.includes(a.status) || a.status === 'IN_PROGRESS');
+  const past = appointments.filter((a) => !upcoming.includes(a)).reverse();
+
+  const renderCard = (item) => {
+    const canManage = OWNER_EDITABLE.includes(item.status);
+    return (
+      <article key={item.id} className="mini-card appointment-card">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
+          <span className="eyebrow" style={{ color: '#ff5a79', display: 'block' }}>{item.service}</span>
+          <StatusBadge status={STATUS_LABELS[item.status] || item.status} type={badgeType(item.status)} />
+        </div>
+
+        <h3 style={{ fontSize: '1.2rem', marginTop: '12px' }}>
+          {formatDate(item.appointmentDate)} • {item.appointmentTime}
+        </h3>
+        <p style={{ marginTop: '8px', color: '#4a4a4a' }}>
+          <strong>Pet:</strong> {item.petName}<br />
+          <strong>Clinic:</strong> {item.clinicName}
+          {item.notes && (<><br /><strong>Your notes:</strong> {item.notes}</>)}
+          {item.staffNote && (<><br /><strong>Clinic note:</strong> {item.staffNote}</>)}
+        </p>
+
+        {item.status === 'RESCHEDULE_REQUESTED' && (
+          <div style={{ marginTop: '12px', padding: '12px', background: '#eff6ff', borderRadius: '12px', color: '#1e3a8a' }}>
+            The clinic suggests <strong>{formatDate(item.suggestedDate)} at {item.suggestedTime}</strong>.
+            <button className="btn btn-primary" style={{ display: 'block', marginTop: '8px', width: '100%' }} onClick={() => handleAcceptSuggestion(item)}>
+              Accept new time
+            </button>
+          </div>
+        )}
+
+        <div className="shop-card-footer" style={{ marginTop: '16px', gap: '8px', display: 'flex' }}>
+          {canManage ? (
+            <>
+              <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => handleOpenManage(item)}>Change</button>
+              <button className="btn btn-ghost" onClick={() => handleCancelRequest(item)} style={{ color: '#d43a57' }}>Cancel</button>
+            </>
+          ) : (
+            <p style={{ fontSize: '0.9rem', color: '#666', fontStyle: 'italic', margin: 0, padding: '8px 0' }}>
+              This appointment is {(STATUS_LABELS[item.status] || item.status).toLowerCase()} and can no longer be changed.
+            </p>
+          )}
+        </div>
+      </article>
+    );
+  };
+
+  if (isFormOpen) {
+    return (
+      <AppointmentForm
+        initialData={editingAppointment}
+        onSave={handleSaveForm}
+        onCancel={() => setIsFormOpen(false)}
+      />
+    );
+  }
+
   return (
     <>
-        {!isFormOpen ? (
-          <>
-            <section className="section-card hero-panel dashboard-hero" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
-              <div>
-                <p className="eyebrow">Appointments</p>
-                <h1>{petName}'s Care Calendar</h1>
-                <p>Book, review, and manage the next health visit and care session in a calm, single-view schedule.</p>
-              </div>
-              <button className="btn btn-primary btn-large" onClick={handleOpenBook}>
-                + Book Appointment
-              </button>
-            </section>
+      <section className="section-card hero-panel dashboard-hero" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+        <div>
+          <p className="eyebrow">Appointments</p>
+          <h1>Care Calendar</h1>
+          <p>Book a visit, follow the clinic's answer, and manage upcoming appointments for all your pets.</p>
+        </div>
+        <button className="btn btn-primary btn-large" onClick={handleOpenBook}>
+          + Book Appointment
+        </button>
+      </section>
 
-            <section className="appointment-grid">
-              {appointments.map((item) => {
-                const canManage = item.status === 'PENDING' || item.status === 'CONFIRMED' || item.status === 'RESCHEDULE_REQUESTED';
-                
-                return (
-                  <article key={item.id} className="mini-card appointment-card">
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                      <span className="eyebrow" style={{ color: '#ff5a79', display: 'block' }}>{item.title}</span>
-                      <StatusBadge status={item.status} type={
-                        item.status === 'CONFIRMED' || item.status === 'COMPLETED' ? 'success' :
-                        item.status === 'PENDING' ? 'warning' :
-                        item.status === 'RESCHEDULE_REQUESTED' ? 'info' : 'danger'
-                      } />
-                    </div>
-                    
-                    <h3 style={{ fontSize: '1.2rem', marginTop: '12px' }}>{item.appointmentDate} • {item.appointmentTime}</h3>
-                    <p style={{ marginTop: '8px', color: '#4a4a4a' }}>
-                      <strong>Pet:</strong> {item.petName}<br/>
-                      {item.detail}
-                    </p>
-                    
-                    <div className="shop-card-footer" style={{ marginTop: '16px', gap: '8px', display: 'flex' }}>
-                      {canManage ? (
-                        <>
-                          <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => handleOpenManage(item)}>Manage</button>
-                          <button className="btn btn-ghost" onClick={() => handleCancelRequest(item)} style={{ color: '#d43a57' }}>Cancel</button>
-                        </>
-                      ) : (
-                        <p style={{ fontSize: '0.9rem', color: '#666', fontStyle: 'italic', margin: 0, padding: '8px 0' }}>
-                          This appointment cannot be edited because it is {item.status.toLowerCase()}.
-                        </p>
-                      )}
-                    </div>
-                  </article>
-                );
-              })}
-              {appointments.length === 0 && (
-                <div style={{ padding: '40px', textAlign: 'center', background: 'white', borderRadius: '24px', gridColumn: '1 / -1' }}>
-                  <p style={{ color: '#666' }}>No upcoming appointments.</p>
-                </div>
-              )}
-            </section>
-          </>
-        ) : (
-          <AppointmentForm 
-            initialData={editingAppointment} 
-            currentUser={currentUser}
-            onSave={handleSaveForm}
-            onCancel={() => setIsFormOpen(false)}
-          />
+      {error && <p style={{ color: '#d93025', fontWeight: 'bold' }}>{error}</p>}
+
+      <h2 style={{ margin: '8px 0 12px' }}>Upcoming</h2>
+      <section className="appointment-grid">
+        {upcoming.map(renderCard)}
+        {!isLoading && upcoming.length === 0 && (
+          <div style={{ padding: '40px', textAlign: 'center', background: 'white', borderRadius: '24px', gridColumn: '1 / -1' }}>
+            <p style={{ color: '#666' }}>No upcoming appointments.</p>
+          </div>
         )}
-      <ConfirmationModal 
+        {isLoading && <p>Loading appointments…</p>}
+      </section>
+
+      {past.length > 0 && (
+        <>
+          <h2 style={{ margin: '24px 0 12px' }}>History</h2>
+          <section className="appointment-grid">{past.map(renderCard)}</section>
+        </>
+      )}
+
+      <ConfirmationModal
         isOpen={isCancelModalOpen}
         title="Cancel Appointment"
         message="Are you sure you want to cancel this appointment? This action cannot be undone."

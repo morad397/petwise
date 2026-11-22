@@ -2,31 +2,34 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Calendar, Clock, CheckCircle, CheckSquare, Users } from 'lucide-react';
 import PetImage from '../../components/PetImage';
+import { getAppointments } from '../../services/dataService';
+import { getCurrentUser } from '../../services/authService';
+import { formatDate, todayIso } from '../../services/medicalService';
 
 function StaffOverview() {
   const navigate = useNavigate();
   const [appointments, setAppointments] = useState([]);
-  const staffMember = JSON.parse(localStorage.getItem('petwise-user') || '{}');
+  const [staffMember] = useState(getCurrentUser);
 
   useEffect(() => {
-    const allAppointments = JSON.parse(localStorage.getItem('petwise-appointments') || '[]');
-    const clinicAppointments = staffMember.clinicId 
-      ? allAppointments.filter(app => String(app.clinicId) === String(staffMember.clinicId))
-      : [];
-      
-    setAppointments(clinicAppointments);
-  }, [staffMember.clinicId]);
+    // The server returns only this staff member's clinic appointments
+    getAppointments()
+      .then(setAppointments)
+      .catch((error) => console.error('Failed to load appointments', error));
+  }, []);
 
-  const todaysAppointments = appointments.length;
+  const today = todayIso();
+  const todaysList = appointments.filter(a => a.appointmentDate === today && !['CANCELLED', 'REJECTED'].includes(a.status));
+  const upcomingList = appointments.filter(a => a.appointmentDate >= today && ['PENDING', 'CONFIRMED', 'RESCHEDULE_REQUESTED', 'IN_PROGRESS'].includes(a.status));
+  const scheduleList = todaysList.length > 0 ? todaysList : upcomingList;
+  const todaysAppointments = todaysList.length;
   const pending = appointments.filter(a => a.status === 'PENDING').length;
   const confirmed = appointments.filter(a => a.status === 'CONFIRMED').length;
   const completed = appointments.filter(a => a.status === 'COMPLETED').length;
   const uniquePatients = new Set(appointments.map(a => a.petId).filter(Boolean)).size;
 
-  // Pet details are saved on the appointment itself. Staff access to full pet
-  // records through the API comes with the appointments module (module 2/3).
   const getPetDetails = (app) => {
-    return { name: app.petName || 'Unknown Pet', species: app.petSpecies, imageUrl: app.petImage, ownerName: app.ownerName || 'Unknown Owner' };
+    return { name: app.petName || 'Unknown Pet', species: app.petSpecies, ownerName: app.ownerName || 'Unknown Owner' };
   };
 
   return (
@@ -36,7 +39,6 @@ function StaffOverview() {
           <h1 style={{ fontSize: '2rem', marginBottom: '4px', color: '#0f2138' }}>Clinic Staff Dashboard</h1>
           <p style={{ color: '#64748b', margin: 0 }}>Manage appointments, patients and today’s clinic activity.</p>
         </div>
-        <span className="status-pill status-active" style={{ fontSize: '0.7rem', padding: '2px 8px', alignSelf: 'flex-start', marginTop: '8px' }}>Frontend Demo — Backend connection planned</span>
       </div>
 
       {!staffMember.clinicId && (
@@ -90,13 +92,13 @@ function StaffOverview() {
       <section className="section-card">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
           <div>
-            <h2 style={{ fontSize: '1.25rem', color: '#0f2138', margin: 0 }}>Today's Schedule</h2>
+            <h2 style={{ fontSize: '1.25rem', color: '#0f2138', margin: 0 }}>{todaysList.length > 0 || upcomingList.length === 0 ? "Today's Schedule" : 'Upcoming Appointments'}</h2>
             <p style={{ color: '#64748b', fontSize: '0.85rem', margin: '4px 0 0 0' }}>{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</p>
           </div>
           <button className="btn btn-secondary" style={{ padding: '8px 16px', fontSize: '0.9rem' }} onClick={() => navigate('/staff/appointments')}>View All</button>
         </div>
         
-        {appointments.length === 0 ? (
+        {scheduleList.length === 0 ? (
           <div className="empty-state" style={{ padding: '40px 20px', textAlign: 'center' }}>
             <p>No appointments scheduled for today.</p>
           </div>
@@ -108,24 +110,24 @@ function StaffOverview() {
                   <th>Time</th>
                   <th>Pet</th>
                   <th>Owner</th>
-                  <th>Reason</th>
+                  <th>Service</th>
                   <th>Status</th>
                 </tr>
               </thead>
               <tbody>
-                {appointments.slice(0, 5).map(app => {
+                {scheduleList.slice(0, 5).map(app => {
                   const petDetails = getPetDetails(app);
                   return (
                     <tr key={app.id}>
-                      <td style={{ whiteSpace: 'nowrap' }}>{app.date}<br/><small style={{ color: '#64748b' }}>{app.time || '10:00 AM'}</small></td>
+                      <td style={{ whiteSpace: 'nowrap' }}>{formatDate(app.appointmentDate)}<br/><small style={{ color: '#64748b' }}>{app.appointmentTime}</small></td>
                       <td>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                          <PetImage pet={{ species: petDetails.species, imageUrl: petDetails.imageUrl }} style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} />
+                          <PetImage pet={{ name: petDetails.name, species: petDetails.species }} style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} />
                           <div style={{ fontWeight: 500, color: '#0f2138' }}>{petDetails.name}</div>
                         </div>
                       </td>
                       <td style={{ color: '#64748b' }}>{petDetails.ownerName}</td>
-                      <td>{app.reason || <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>No reason provided</span>}</td>
+                      <td>{app.service}</td>
                       <td>
                         <span className={`status-pill status-${(app.status || '').toLowerCase()}`}>
                           {app.status || 'PENDING'}

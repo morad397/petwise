@@ -1,68 +1,94 @@
-import { useState, useEffect } from 'react';
+import { Fragment, useState, useEffect } from 'react';
 import PetImage from '../../components/PetImage';
+import { getAppointments, setAppointmentStatus, getAvailableSlots } from '../../services/dataService';
+import { formatDate, todayIso } from '../../services/medicalService';
+
+const small = { padding: '6px 12px', fontSize: '0.8rem' };
 
 function StaffAppointments() {
   const [appointments, setAppointments] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
   const [filter, setFilter] = useState('ALL');
   const [search, setSearch] = useState('');
-  
-  const staffMember = JSON.parse(localStorage.getItem('petwise-user') || '{}');
+
+  // reschedule form for one appointment
+  const [rescheduleFor, setRescheduleFor] = useState(null);
+  const [suggestion, setSuggestion] = useState({ date: '', time: '', note: '' });
+  const [suggestionSlots, setSuggestionSlots] = useState({ status: '', slots: [] });
+
+  const loadAppointments = () =>
+    getAppointments()
+      .then((list) => {
+        setAppointments(list);
+        setError('');
+      })
+      .catch((e) => setError(e.message))
+      .finally(() => setIsLoading(false));
 
   useEffect(() => {
     loadAppointments();
   }, []);
 
-  const loadAppointments = () => {
-    const allAppointments = JSON.parse(localStorage.getItem('petwise-appointments') || '[]');
-    const clinicAppointments = staffMember.clinicId 
-      ? allAppointments.filter(app => String(app.clinicId) === String(staffMember.clinicId))
-      : allAppointments; // fallback for demo
-    setAppointments(clinicAppointments);
-  };
+  // free times for the suggested date (the appointment's own time counts as free)
+  useEffect(() => {
+    if (!rescheduleFor || !suggestion.date) return;
+    let cancelled = false;
+    getAvailableSlots(rescheduleFor.clinicId, suggestion.date, rescheduleFor.id)
+      .then((result) => !cancelled && setSuggestionSlots(result))
+      .catch(() => !cancelled && setSuggestionSlots({ status: 'ERROR', slots: [] }));
+    return () => {
+      cancelled = true;
+    };
+  }, [rescheduleFor, suggestion.date]);
 
-  const updateStatus = (id, newStatus) => {
-    const allAppointments = JSON.parse(localStorage.getItem('petwise-appointments') || '[]');
-    const updated = allAppointments.map(app => 
-      app.id === id ? { ...app, status: newStatus } : app
-    );
-    localStorage.setItem('petwise-appointments', JSON.stringify(updated));
-    loadAppointments();
+  const changeStatus = async (app, status, extra) => {
+    try {
+      await setAppointmentStatus(app.id, status, extra);
+      await loadAppointments();
+      return true;
+    } catch (e) {
+      alert(e.message);
+      return false;
+    }
   };
 
   const handleAction = (app, action) => {
-    if (action === 'CONFIRM') updateStatus(app.id, 'CONFIRMED');
+    if (action === 'CONFIRM') changeStatus(app, 'CONFIRMED');
     if (action === 'REJECT') {
-      const reason = prompt("Enter rejection reason:");
-      if (reason) updateStatus(app.id, 'REJECTED');
+      const reason = prompt('Reason for rejecting (the owner will see it):');
+      if (reason !== null) changeStatus(app, 'REJECTED', { note: reason || null });
     }
     if (action === 'SUGGEST_TIME') {
-      const newTime = prompt("Enter suggested time (e.g. 2026-07-02 14:00):");
-      if (newTime) updateStatus(app.id, 'RESCHEDULE_REQUESTED');
+      setRescheduleFor(app);
+      setSuggestion({ date: app.appointmentDate, time: '', note: '' });
+      setSuggestionSlots({ status: '', slots: [] });
     }
-    if (action === 'IN_PROGRESS') updateStatus(app.id, 'IN_PROGRESS');
+    if (action === 'IN_PROGRESS') changeStatus(app, 'IN_PROGRESS');
     if (action === 'COMPLETE') {
-      const notes = prompt("Enter visit notes:");
-      if (notes !== null) updateStatus(app.id, 'COMPLETED');
+      const notes = prompt('Visit notes (saved to the pet\'s vet visit history):');
+      if (notes !== null) changeStatus(app, 'COMPLETED', { note: notes || null });
     }
   };
 
-  const filteredAppointments = appointments.filter(app => {
+  const sendSuggestion = async (event) => {
+    event.preventDefault();
+    const ok = await changeStatus(rescheduleFor, 'RESCHEDULE_REQUESTED', {
+      suggestedDate: suggestion.date,
+      suggestedTime: suggestion.time,
+      note: suggestion.note || null,
+    });
+    if (ok) setRescheduleFor(null);
+  };
+
+  const filteredAppointments = appointments.filter((app) => {
     if (filter !== 'ALL' && app.status !== filter) return false;
     if (search) {
-      const searchLower = search.toLowerCase();
-      const matchName = app.petName?.toLowerCase().includes(searchLower);
-      const matchOwner = app.ownerName?.toLowerCase().includes(searchLower);
-      const matchReason = app.reason?.toLowerCase().includes(searchLower);
-      return matchName || matchOwner || matchReason;
+      const q = search.toLowerCase();
+      return [app.petName, app.ownerName, app.service, app.notes].some((v) => v && v.toLowerCase().includes(q));
     }
     return true;
   });
-
-  // Pet details are saved on the appointment itself. Staff access to full pet
-  // records through the API comes with the appointments module (module 2/3).
-  const getPetDetails = (app) => {
-    return { name: app.petName || 'Unknown Pet', species: app.petSpecies, imageUrl: app.petImage, ownerName: app.ownerName || 'Unknown Owner' };
-  };
 
   return (
     <div>
@@ -73,17 +99,19 @@ function StaffAppointments() {
         </div>
       </div>
 
+      {error && <p style={{ color: '#d93025', fontWeight: 'bold' }}>{error}</p>}
+
       <div className="section-card" style={{ marginBottom: '24px', padding: '16px 24px' }}>
         <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
-          <input 
-            type="text" 
-            placeholder="Search pet, owner, or reason..." 
+          <input
+            type="text"
+            placeholder="Search pet, owner, or service..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             style={{ padding: '10px 16px', border: '1px solid #e2e8f0', borderRadius: '12px', flex: 1, minWidth: '200px', background: '#f8fafc', color: '#0f2138' }}
           />
-          <select 
-            value={filter} 
+          <select
+            value={filter}
             onChange={(e) => setFilter(e.target.value)}
             style={{ padding: '10px 16px', border: '1px solid #e2e8f0', borderRadius: '12px', background: '#f8fafc', color: '#0f2138', cursor: 'pointer' }}
           >
@@ -100,7 +128,9 @@ function StaffAppointments() {
       </div>
 
       <section className="section-card" style={{ padding: '0' }}>
-        {filteredAppointments.length === 0 ? (
+        {isLoading ? (
+          <div className="empty-state" style={{ padding: '60px 20px', textAlign: 'center' }}><p>Loading…</p></div>
+        ) : filteredAppointments.length === 0 ? (
           <div className="empty-state" style={{ padding: '60px 20px', textAlign: 'center' }}>
             <p>No appointments found matching your criteria.</p>
           </div>
@@ -112,50 +142,89 @@ function StaffAppointments() {
                   <th>Date / Time</th>
                   <th>Pet</th>
                   <th>Owner</th>
-                  <th>Reason</th>
+                  <th>Service</th>
                   <th>Status</th>
                   <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredAppointments.map(app => {
-                  const petDetails = getPetDetails(app);
-                  return (
-                    <tr key={app.id}>
-                      <td style={{ whiteSpace: 'nowrap' }}>{app.date} <br/> <small style={{ color: '#64748b' }}>{app.time || '10:00 AM'}</small></td>
+                {filteredAppointments.map((app) => (
+                  <Fragment key={app.id}>
+                    <tr>
+                      <td style={{ whiteSpace: 'nowrap' }}>
+                        {formatDate(app.appointmentDate)} <br /> <small style={{ color: '#64748b' }}>{app.appointmentTime}</small>
+                      </td>
                       <td>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                          <PetImage pet={{ species: petDetails.species, imageUrl: petDetails.imageUrl }} style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} />
-                          <div style={{ fontWeight: 500, color: '#0f2138' }}>{petDetails.name}</div>
+                          <PetImage pet={{ name: app.petName, species: app.petSpecies }} style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} />
+                          <div style={{ fontWeight: 500, color: '#0f2138' }}>{app.petName}</div>
                         </div>
                       </td>
-                      <td style={{ color: '#64748b' }}>{petDetails.ownerName}</td>
-                      <td>{app.reason || <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>No reason provided</span>}</td>
+                      <td style={{ color: '#64748b' }}>{app.ownerName}</td>
                       <td>
-                        <span className={`status-pill status-${(app.status || '').toLowerCase()}`}>
-                          {app.status || 'PENDING'}
-                        </span>
+                        {app.service}
+                        {app.notes && <small style={{ display: 'block', color: '#64748b' }}>{app.notes}</small>}
+                        {app.status === 'RESCHEDULE_REQUESTED' && (
+                          <small style={{ display: 'block', color: '#8b5cf6' }}>Suggested: {formatDate(app.suggestedDate)} {app.suggestedTime}</small>
+                        )}
+                      </td>
+                      <td>
+                        <span className={`status-pill status-${(app.status || '').toLowerCase()}`}>{app.status}</span>
                       </td>
                       <td>
                         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                           {app.status === 'PENDING' && (
                             <>
-                              <button className="btn btn-primary" style={{ padding: '6px 12px', fontSize: '0.8rem', background: '#10b981' }} onClick={() => handleAction(app, 'CONFIRM')}>Confirm</button>
-                              <button className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: '0.8rem', borderColor: '#8b5cf6', color: '#8b5cf6' }} onClick={() => handleAction(app, 'SUGGEST_TIME')}>Reschedule</button>
-                              <button className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: '0.8rem', borderColor: '#ef4444', color: '#ef4444' }} onClick={() => handleAction(app, 'REJECT')}>Reject</button>
+                              <button className="btn btn-primary" style={{ ...small, background: '#10b981' }} onClick={() => handleAction(app, 'CONFIRM')}>Confirm</button>
+                              <button className="btn btn-secondary" style={{ ...small, borderColor: '#8b5cf6', color: '#8b5cf6' }} onClick={() => handleAction(app, 'SUGGEST_TIME')}>Reschedule</button>
+                              <button className="btn btn-secondary" style={{ ...small, borderColor: '#ef4444', color: '#ef4444' }} onClick={() => handleAction(app, 'REJECT')}>Reject</button>
                             </>
                           )}
                           {app.status === 'CONFIRMED' && (
-                            <button className="btn btn-primary" style={{ padding: '6px 12px', fontSize: '0.8rem', background: '#3b82f6' }} onClick={() => handleAction(app, 'IN_PROGRESS')}>Start Visit</button>
+                            <>
+                              <button className="btn btn-primary" style={{ ...small, background: '#3b82f6' }} onClick={() => handleAction(app, 'IN_PROGRESS')}>Start Visit</button>
+                              <button className="btn btn-secondary" style={{ ...small, borderColor: '#8b5cf6', color: '#8b5cf6' }} onClick={() => handleAction(app, 'SUGGEST_TIME')}>Reschedule</button>
+                            </>
                           )}
                           {app.status === 'IN_PROGRESS' && (
-                            <button className="btn btn-primary" style={{ padding: '6px 12px', fontSize: '0.8rem', background: '#14b8a6', color: 'white' }} onClick={() => handleAction(app, 'COMPLETE')}>Complete</button>
+                            <button className="btn btn-primary" style={{ ...small, background: '#14b8a6', color: 'white' }} onClick={() => handleAction(app, 'COMPLETE')}>Complete</button>
+                          )}
+                          {app.status === 'RESCHEDULE_REQUESTED' && (
+                            <small style={{ color: '#64748b' }}>Waiting for owner</small>
                           )}
                         </div>
                       </td>
                     </tr>
-                  );
-                })}
+                    {rescheduleFor?.id === app.id && (
+                      <tr>
+                        <td colSpan="6" style={{ background: '#f8fafc' }}>
+                          <form onSubmit={sendSuggestion} style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                            <label className="form-group" style={{ margin: 0 }}>
+                              <span>New date</span>
+                              <input type="date" required min={todayIso()} value={suggestion.date}
+                                onChange={(e) => setSuggestion({ ...suggestion, date: e.target.value, time: '' })} />
+                            </label>
+                            <label className="form-group" style={{ margin: 0 }}>
+                              <span>New time</span>
+                              <select required value={suggestion.time} onChange={(e) => setSuggestion({ ...suggestion, time: e.target.value })}>
+                                <option value="">
+                                  {suggestionSlots.status === 'CLINIC_CLOSED' ? 'Clinic closed' : suggestionSlots.status === 'FULLY_BOOKED' ? 'Fully booked' : '-- Choose --'}
+                                </option>
+                                {suggestionSlots.slots.map((s) => <option key={s} value={s}>{s}</option>)}
+                              </select>
+                            </label>
+                            <label className="form-group" style={{ margin: 0, flex: 1, minWidth: '180px' }}>
+                              <span>Note to owner</span>
+                              <input value={suggestion.note} onChange={(e) => setSuggestion({ ...suggestion, note: e.target.value })} placeholder="Optional" />
+                            </label>
+                            <button type="submit" className="btn btn-primary" style={small}>Send suggestion</button>
+                            <button type="button" className="btn btn-ghost" style={small} onClick={() => setRescheduleFor(null)}>Cancel</button>
+                          </form>
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
+                ))}
               </tbody>
             </table>
           </div>
