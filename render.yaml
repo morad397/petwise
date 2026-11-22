@@ -19,7 +19,7 @@ services:
       - key: JWT_SECRET
         generateValue: true
       - key: CORS_ORIGINS
-        value: https://morad397.github.io,http://localhost:5173
+        value: https://petwise-delta.vercel.app,https://morad397.github.io,http://localhost:5173
       - key: ADMIN_EMAIL
         sync: false
       - key: ADMIN_PASSWORD
