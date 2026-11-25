@@ -22,6 +22,9 @@ class Settings(BaseSettings):
     admin_password: str = ""
     admin_name: str = "PetWise Admin"
 
+    # password for the demo accounts created by `python -m app.demo_data`
+    demo_password: str = ""
+
     @property
     def cors_origin_list(self) -> List[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
