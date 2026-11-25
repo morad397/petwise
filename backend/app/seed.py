@@ -4,6 +4,7 @@ This runs automatically every time the server starts (and is safe to repeat):
 - creates the indexes (unique email, ...)
 - adds the 3 demo clinics if there are no clinics yet
 - adds the 8 demo shop products if there are no products yet
+- adds 4 starter first-aid guides for the SOS page if there are none
 - creates the admin account from ADMIN_EMAIL / ADMIN_PASSWORD if it does not exist
 
 You can also run it by hand from the backend folder:  python -m app.seed
@@ -88,8 +89,69 @@ DEMO_PRODUCTS = [
 ]
 
 
+# Starter first-aid guides for the SOS page. Deliberately general and cautious: every guide
+# points to a veterinarian. Admins can edit, hide or delete them on the System page.
+DEMO_GUIDES = [
+    dict(
+        title="Suspected poisoning",
+        summary="Your pet may have eaten something toxic (chocolate, medicine, plants, chemicals).",
+        warning="Do not make your pet vomit unless a veterinarian tells you to.",
+        instructions=[
+            "Move your pet away from the substance and remove anything left in its mouth only if it is safe to do so.",
+            "Call your veterinarian or an animal poison helpline right away.",
+            "Keep the packaging or a sample of what was eaten to show the vet.",
+            "Watch for vomiting, drooling, shaking, weakness or seizures and tell the vet.",
+        ],
+    ),
+    dict(
+        title="Bleeding wound",
+        summary="Cuts or injuries that are bleeding.",
+        warning="Heavy bleeding that does not slow down is an emergency: go to a vet immediately.",
+        instructions=[
+            "Keep your pet as calm and still as possible.",
+            "Press a clean cloth or gauze firmly on the wound.",
+            "If blood soaks through, add another layer on top instead of removing the first one.",
+            "Keep the pressure on while you take your pet to a veterinarian.",
+        ],
+    ),
+    dict(
+        title="Heatstroke",
+        summary="Heavy panting, drooling, weakness or collapse after heat or exercise.",
+        warning="Do not use ice-cold water. Heatstroke can be life-threatening even if your pet seems to recover.",
+        instructions=[
+            "Move your pet to a shaded or cool place immediately.",
+            "Wet the fur with cool (not cold) water and let air flow over it.",
+            "Offer small amounts of water if your pet can drink by itself.",
+            "Go to a veterinarian right away.",
+        ],
+    ),
+    dict(
+        title="Choking",
+        summary="Pawing at the mouth, gagging, or struggling to breathe.",
+        warning="Do not push your fingers blindly into the throat; you may push the object deeper or get bitten.",
+        instructions=[
+            "Stay calm and keep your pet from running around.",
+            "If you can clearly see the object and remove it easily, do so carefully.",
+            "If your pet cannot breathe or the object does not come out, go to the nearest veterinarian immediately.",
+        ],
+    ),
+]
+
+
 def seed(db: Database) -> None:
     create_indexes(db)
+
+    if db.emergency_guides.count_documents({}) == 0:
+        db.emergency_guides.insert_many(
+            [
+                new_document(
+                    db, "emergency_guides", source_name="General pet first-aid guidance; always follow your veterinarian",
+                    source_url=None, reviewed_at=None, active=True, **g,
+                )
+                for g in DEMO_GUIDES
+            ]
+        )
+        print(f"Added {len(DEMO_GUIDES)} first-aid guides.")
 
     if db.products.count_documents({}) == 0:
         db.products.insert_many(

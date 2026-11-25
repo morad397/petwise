@@ -27,3 +27,15 @@ export const formatDate = (isoDate) => {
 
 // Today's local date as "YYYY-MM-DD"
 export const todayIso = () => new Date().toLocaleDateString('en-CA');
+
+// --- Feeding schedule (meals + "fed today" log) ---
+const feedingBase = (petId) => `/pets/${encodeURIComponent(petId)}/feeding`;
+export const feedingApi = {
+  // date: the user's local "YYYY-MM-DD", so "fed" means fed on their today
+  list: (petId, date) => apiRequest(`${feedingBase(petId)}?date=${date}`),
+  create: (petId, data) => apiRequest(feedingBase(petId), { method: 'POST', body: data }),
+  update: (petId, id, data) => apiRequest(`${feedingBase(petId)}/${id}`, { method: 'PUT', body: data }),
+  remove: (petId, id) => apiRequest(`${feedingBase(petId)}/${id}`, { method: 'DELETE' }),
+  markFed: (petId, id, date) => apiRequest(`${feedingBase(petId)}/${id}/fed`, { method: 'POST', body: { date } }),
+  undoFed: (petId, id, date) => apiRequest(`${feedingBase(petId)}/${id}/fed?date=${date}`, { method: 'DELETE' }),
+};

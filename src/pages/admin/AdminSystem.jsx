@@ -4,6 +4,7 @@ import StatusBadge from '../../components/admin/StatusBadge';
 import { resetDevelopmentData } from '../../services/dataService';
 import { getActivityLog, getAdminStats } from '../../services/adminService';
 import { getEmergencySettings, updateEmergencySettings } from '../../services/emergencyService';
+import GuidesEditor from '../../components/admin/GuidesEditor';
 
 const formatLogDate = (iso) =>
   new Date(iso).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
@@ -69,7 +70,10 @@ export default function AdminSystem() {
       setSettings(JSON.parse(saved));
     }
 
-    setEmergencySettings(getEmergencySettings());
+    // Emergency contact info is shared with every user through the API
+    getEmergencySettings()
+      .then(setEmergencySettings)
+      .catch(() => {});
   }, []);
 
   const handleSaveSettings = (e) => {
@@ -78,14 +82,14 @@ export default function AdminSystem() {
     alert('Settings saved successfully!');
   };
   
-  const handleSaveEmergencySettings = (e) => {
+  const handleSaveEmergencySettings = async (e) => {
     e.preventDefault();
     if (window.confirm("Are you sure you want to update the global emergency contact information?")) {
       try {
-        updateEmergencySettings(emergencySettings);
-        alert('Emergency settings saved successfully!');
-      } catch {
-        alert('Failed to save emergency settings.');
+        await updateEmergencySettings(emergencySettings);
+        alert('Emergency settings saved. All users now see them on the SOS page.');
+      } catch (err) {
+        alert(err.message);
       }
     }
   };
@@ -212,6 +216,8 @@ export default function AdminSystem() {
               </button>
             </form>
           </section>
+
+          <GuidesEditor />
 
           {/* SECTION C: ROLE & PERMISSION MANAGEMENT */}
           <section className="section-card">

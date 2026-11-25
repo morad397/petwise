@@ -12,6 +12,8 @@ from app.routers import (
     auth,
     clinics,
     community,
+    emergency,
+    feeding,
     medical,
     notifications,
     pets,
@@ -38,7 +40,7 @@ async def lifespan(_app: FastAPI):
 app = FastAPI(
     title="PetWise API",
     description="Backend for the PetWise pet-care platform (Kinneret College final project).",
-    version="0.5.0",
+    version="0.6.0",
     lifespan=lifespan,
 )
 
@@ -65,6 +67,8 @@ app.include_router(shop.router, prefix=API_PREFIX)
 app.include_router(community.router, prefix=API_PREFIX)
 app.include_router(notifications.router, prefix=API_PREFIX)
 app.include_router(admin.router, prefix=API_PREFIX)
+app.include_router(emergency.router, prefix=API_PREFIX)
+app.include_router(feeding.router, prefix=API_PREFIX)
 
 
 @app.get("/api/health", tags=["Health"])

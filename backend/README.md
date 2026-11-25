@@ -38,6 +38,10 @@ backend/
 | `posts` | CommunityPost / Like | author_id, content, media_url, hashtags, liked_by [user ids], bookmarked_by, comment_count |
 | `comments` | Comment | post_id, author_id, content |
 | `post_reports` | — | post_id, reported_by, reason |
+| `settings` | — | `_id: "emergency"`: SOS contact name, phone, availability, disclaimer |
+| `emergency_guides` | — | title, summary, warning, instructions [], source, active |
+| `feeding_schedules` | — | pet_id, meal_name, time, food, amount |
+| `feeding_logs` | — | schedule_id, date, fed_by_name ("fed today") |
 | `notifications` | — | user_id, type, title, message, link, is_read |
 | `activity_log` | Analytics | actor_name, action, target, result (admin actions) |
 | `schedule_blocks` | Schedule | clinic_id, date, time, reason (times staff blocked) |
@@ -170,6 +174,18 @@ about a minute while it wakes up, so open the site a minute before a demo.
 | GET | `/api/admin/reports` | admin | Reported posts with reasons |
 | DELETE | `/api/admin/reports/{postId}` | admin | Dismiss reports (keep the post) |
 | GET | `/api/admin/activity` | admin | Activity log of admin actions |
+
+### SOS and feeding
+
+| Method | Path | Who | What |
+|---|---|---|---|
+| GET | `/api/emergency/settings` | anyone | SOS emergency contact |
+| PUT | `/api/emergency/settings` | admin | Change it (all users see it) |
+| GET | `/api/emergency/guides` | anyone | Active first-aid guides (`?include_inactive=true` for admin) |
+| POST/PUT/DELETE | `/api/emergency/guides[/{id}]` | admin | Manage guides |
+| GET | `/api/pets/{id}/feeding?date=YYYY-MM-DD` | owner, admin, clinic staff* | Meals + whether each was given that day |
+| POST/PUT/DELETE | `/api/pets/{id}/feeding[/{mealId}]` | owner, admin | Manage meals |
+| POST/DELETE | `/api/pets/{id}/feeding/{mealId}/fed` | owner, admin | Mark given today / undo |
 
 Notifications are sent on events: appointment requested / changed / cancelled (to the clinic's staff),
 confirmed / rejected / new time suggested / completed (to the owner), order shipped / delivered /

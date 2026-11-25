@@ -2,7 +2,8 @@
 
 Collections (one per class-diagram entity):
   users, clinics, pets, vaccinations, treatments, weights, reminders, appointments, schedule_blocks,
-  products, carts, orders, posts, comments, post_reports, notifications, activity_log, counters
+  products, carts, orders, posts, comments, post_reports, notifications, activity_log,
+  settings, emergency_guides, feeding_schedules, feeding_logs, counters
 
 Every document keeps the BaseEntity fields from the class diagrams:
   _id (number), created_at, updated_at, status
@@ -85,6 +86,8 @@ def create_indexes(db: Database) -> None:
     db.posts.create_index([("hashtags", ASCENDING)])
     db.comments.create_index([("post_id", ASCENDING)])
     db.notifications.create_index([("user_id", ASCENDING), ("is_read", ASCENDING)])
+    db.feeding_schedules.create_index([("pet_id", ASCENDING)])
+    db.feeding_logs.create_index([("schedule_id", ASCENDING), ("date", ASCENDING)])
     db.schedule_blocks.create_index(
         [("clinic_id", ASCENDING), ("date", ASCENDING), ("time", ASCENDING)], unique=True
     )

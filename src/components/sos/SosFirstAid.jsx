@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { BookOpen, ShieldAlert, ChevronDown, ChevronUp } from 'lucide-react';
 
 export default function SosFirstAid({ guides = [] }) {
@@ -75,7 +75,7 @@ export default function SosFirstAid({ guides = [] }) {
 
                   <div style={{ marginTop: '20px', paddingTop: '12px', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#94a3b8' }}>
                     <span>Source: {guide.sourceUrl ? <a href={guide.sourceUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#3b82f6' }}>{guide.sourceName}</a> : guide.sourceName}</span>
-                    <span>Reviewed: {new Date(guide.reviewedAt).toLocaleDateString()}</span>
+                    {guide.reviewedAt && <span>Reviewed: {new Date(guide.reviewedAt).toLocaleDateString()}</span>}
                   </div>
                 </div>
               )}

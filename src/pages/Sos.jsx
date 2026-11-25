@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import SosHero from '../components/sos/SosHero';
 import SosTriage from '../components/sos/SosTriage';
 import SosFirstAid from '../components/sos/SosFirstAid';
@@ -13,8 +13,13 @@ export default function Sos() {
   const [clinics, setClinics] = useState([]);
 
   useEffect(() => {
-    setSettings(getEmergencySettings());
-    setGuides(getActiveGuides());
+    // Set by the admin on the System page, shared with every user
+    getEmergencySettings()
+      .then(setSettings)
+      .catch((error) => console.error('Failed to load emergency settings', error));
+    getActiveGuides()
+      .then(setGuides)
+      .catch((error) => console.error('Failed to load first-aid guides', error));
     getClinics()
       .then(setClinics)
       .catch((error) => console.error('Failed to load clinics', error));
@@ -41,9 +46,11 @@ export default function Sos() {
 
           </div>
 
-          <div style={{ marginTop: '40px', textAlign: 'center', color: '#94a3b8', fontSize: '0.85rem' }}>
-            Frontend Demo — calling, live clinic status and map services require production integration.
-          </div>
+          {settings?.emergencyDisclaimer && (
+            <div style={{ marginTop: '40px', textAlign: 'center', color: '#94a3b8', fontSize: '0.85rem' }}>
+              {settings.emergencyDisclaimer}
+            </div>
+          )}
         </div>
       </>
   );

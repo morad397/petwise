@@ -43,7 +43,7 @@ def delete_pet_data(db: Database, pet_ids) -> None:
     if not pet_ids:
         return
     query = {"pet_id": {"$in": pet_ids}}
-    for collection in ("vaccinations", "treatments", "weights", "reminders"):
+    for collection in ("vaccinations", "treatments", "weights", "reminders", "feeding_schedules", "feeding_logs"):
         db[collection].delete_many(query)
     db.appointments.update_many(
         {**query, "status": {"$in": ["PENDING", "CONFIRMED", "RESCHEDULE_REQUESTED"]}},

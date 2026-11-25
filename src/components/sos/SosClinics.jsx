@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { MapPin, Navigation, Phone, Search, Clock, AlertCircle } from 'lucide-react';
 
 // Haversine formula
@@ -19,26 +19,28 @@ function deg2rad(deg) {
   return deg * (Math.PI / 180);
 }
 
+// Open right now? Clinics store one entry per weekday:
+// openingHours: [{ dayOfWeek: 0-6 (0 = Sunday), isOpen, openTime: "08:00", closeTime: "18:00" }]
 function isClinicOpen(clinic) {
   if (clinic.isOpen24Hours) return { status: 'Open 24 Hours', color: '#10b981' };
-  if (!clinic.openingHours) return { status: 'Hours Unavailable', color: '#64748b' };
-  
-  // Real check based on openingHours { start: "09:00", end: "17:00" }
+  const hours = Array.isArray(clinic.openingHours) ? clinic.openingHours : [];
+  if (hours.length === 0) return { status: 'Hours Unavailable', color: '#64748b' };
+
   const now = new Date();
-  const currentHours = now.getHours();
-  const currentMins = now.getMinutes();
-  const currentTime = currentHours + (currentMins / 60);
-
-  const [startH, startM] = clinic.openingHours.start.split(':').map(Number);
-  const [endH, endM] = clinic.openingHours.end.split(':').map(Number);
-  
-  const startTime = startH + (startM / 60);
-  const endTime = endH + (endM / 60);
-
-  if (currentTime >= startTime && currentTime <= endTime) {
-    return { status: 'Open Now', color: '#10b981' };
+  const today = hours.find((h) => h.dayOfWeek === now.getDay());
+  if (!today || !today.isOpen || !today.openTime || !today.closeTime) {
+    return { status: 'Closed Today', color: '#ef4444' };
   }
-  return { status: 'Closed', color: '#ef4444' };
+
+  const current = now.getHours() * 60 + now.getMinutes();
+  const toMinutes = (hhmm) => {
+    const [h, m] = hhmm.split(':').map(Number);
+    return h * 60 + m;
+  };
+  if (current >= toMinutes(today.openTime) && current < toMinutes(today.closeTime)) {
+    return { status: `Open Now (until ${today.closeTime})`, color: '#10b981' };
+  }
+  return { status: `Closed (opens ${today.openTime})`, color: '#ef4444' };
 }
 
 export default function SosClinics({ allClinics }) {
