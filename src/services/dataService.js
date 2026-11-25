@@ -140,3 +140,12 @@ export const getAvailableSlots = (clinicId, date, excludeAppointmentId) => {
   if (excludeAppointmentId) params.set('exclude', excludeAppointmentId);
   return apiRequest(`/clinics/${encodeURIComponent(clinicId)}/slots?${params}`, { auth: false });
 };
+
+// --- Clinic staff schedule (API) ---
+// { date, isOpen, slots: [{ time, state: 'AVAILABLE' | 'BOOKED' | 'BLOCKED', petName, service, blockId, reason, ... }] }
+export const getStaffSchedule = (date) => apiRequest(`/staff/schedule?date=${encodeURIComponent(date)}`);
+
+export const blockTime = (date, time, reason) =>
+  apiRequest('/staff/schedule/blocks', { method: 'POST', body: { date, time, reason: reason || null } });
+
+export const unblockTime = (blockId) => apiRequest(`/staff/schedule/blocks/${blockId}`, { method: 'DELETE' });

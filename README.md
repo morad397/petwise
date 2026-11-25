@@ -42,6 +42,6 @@ Locally the frontend calls `http://localhost:8000/api` (`.env.development`).
 |---|---|
 | 1. Authentication, roles, users, clinics, pets | Connected to MongoDB |
 | 2. Medical records, reminders, appointments | Connected to MongoDB |
-| 3. Clinic staff views | Appointments + patients connected; schedule blocking still local |
+| 3. Clinic staff views (appointments, patients, schedule, profile) | Connected to MongoDB |
 | 4. Shop, orders, community | Still localStorage |
 | 5. Admin analytics, AI, notifications | Still localStorage |

@@ -1,8 +1,31 @@
 import { useState, useEffect } from 'react';
-import { updateMe } from '../../services/authService';
+import { updateMe, getCurrentUser } from '../../services/authService';
+import { getClinics } from '../../services/dataService';
 
 function StaffProfile() {
-  const staffMember = JSON.parse(localStorage.getItem('petwise-user') || '{}');
+  const [staffMember, setStaffMember] = useState(getCurrentUser);
+  const [clinics, setClinics] = useState([]);
+  const [chosenClinic, setChosenClinic] = useState('');
+  const clinic = clinics.find(c => c.id === staffMember.clinicId);
+
+  useEffect(() => {
+    getClinics()
+      .then(setClinics)
+      .catch(() => setClinics([]));
+  }, []);
+
+  // Staff without a clinic can pick one here (they are sent to this page after login)
+  const handleChooseClinic = async () => {
+    if (!chosenClinic) return;
+    try {
+      const updated = await updateMe({ clinicId: Number(chosenClinic) });
+      setStaffMember(updated);
+      alert('Clinic saved. You can now see its appointments.');
+    } catch (error) {
+      alert(error.message);
+    }
+  };
+
   const [form, setForm] = useState({
     fullName: staffMember.fullName || '',
     email: staffMember.email || '',
@@ -16,7 +39,8 @@ function StaffProfile() {
   const handleSave = async (e) => {
     e.preventDefault();
     try {
-      await updateMe({ fullName: form.fullName, email: form.email, phone: form.phone || null });
+      const updated = await updateMe({ fullName: form.fullName, email: form.email, phone: form.phone || null });
+      setStaffMember(updated);
       alert("Profile updated successfully!");
     } catch (error) {
       alert(error.message);
@@ -48,11 +72,11 @@ function StaffProfile() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 <div>
                   <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Clinic Name</div>
-                  <div style={{ fontWeight: 500, color: '#0f2138' }}>{staffMember.clinicName || 'Petwise Clinic'}</div>
+                  <div style={{ fontWeight: 500, color: '#0f2138' }}>{clinic ? `${clinic.name}${clinic.city ? ` — ${clinic.city}` : ''}` : `Clinic #${staffMember.clinicId}`}</div>
                 </div>
                 <div>
                   <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Department</div>
-                  <div style={{ fontWeight: 500, color: '#0f2138' }}>General Medicine</div>
+                  <div style={{ fontWeight: 500, color: '#0f2138' }}>{staffMember.department || 'General Medicine'}</div>
                 </div>
                 <div>
                   <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Account Status</div>
@@ -62,7 +86,17 @@ function StaffProfile() {
             ) : (
               <div style={{ background: '#fef3c7', border: '1px solid #fde68a', padding: '16px', borderRadius: '8px', color: '#92400e' }}>
                 <strong>No clinic assigned!</strong>
-                <p style={{ margin: '4px 0 0 0', fontSize: '0.9rem' }}>Please contact the system administrator to assign your account to a clinic.</p>
+                <p style={{ margin: '4px 0 8px 0', fontSize: '0.9rem' }}>Choose the clinic you work at, or ask an administrator to assign you.</p>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  <select value={chosenClinic} onChange={(e) => setChosenClinic(e.target.value)}
+                    style={{ padding: '8px', borderRadius: '8px', border: '1px solid #fde68a', flex: 1, minWidth: '160px' }}>
+                    <option value="">Select a clinic</option>
+                    {clinics.filter(c => c.status === 'ACTIVE').map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                  <button type="button" className="btn btn-primary" style={{ padding: '8px 14px' }} onClick={handleChooseClinic} disabled={!chosenClinic}>
+                    Save
+                  </button>
+                </div>
               </div>
             )}
           </div>

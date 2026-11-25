@@ -72,6 +72,38 @@ class SlotsOut(CamelModel):
     slots: List[str]
 
 
+class ScheduleSlotOut(CamelModel):
+    time: str
+    state: Literal["AVAILABLE", "BOOKED", "BLOCKED"]
+    appointment_id: Optional[int] = None
+    appointment_status: Optional[str] = None
+    pet_name: Optional[str] = None
+    owner_name: Optional[str] = None
+    service: Optional[str] = None
+    block_id: Optional[int] = None
+    reason: Optional[str] = None
+
+
+class ScheduleDayOut(CamelModel):
+    date: date
+    is_open: bool
+    slots: List[ScheduleSlotOut]
+
+
+class BlockIn(CamelModel):
+    date: date
+    time: str = Field(pattern=TIME_PATTERN)
+    reason: Optional[str] = Field(default=None, max_length=100)
+
+
+class BlockOut(CamelModel):
+    id: int
+    clinic_id: int
+    date: date
+    time: str
+    reason: Optional[str] = None
+
+
 class PatientOut(PetOut):
     owner_name: Optional[str] = None
     last_appointment_date: Optional[date] = None

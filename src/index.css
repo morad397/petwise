@@ -841,6 +841,38 @@ img {
   font-weight: 800;
 }
 
+/* Status colors (appointments and schedule slots) */
+.status-pill.status-available,
+.status-pill.status-active,
+.status-pill.status-confirmed,
+.status-pill.status-completed {
+  background: #e7f8ef;
+  color: #15803d;
+}
+
+.status-pill.status-booked,
+.status-pill.status-in_progress {
+  background: #e8f1ff;
+  color: #1d4ed8;
+}
+
+.status-pill.status-pending,
+.status-pill.status-reschedule_requested {
+  background: #fff7e0;
+  color: #b45309;
+}
+
+.status-pill.status-blocked,
+.status-pill.status-cancelled {
+  background: #eef1f6;
+  color: #475569;
+}
+
+.status-pill.status-rejected {
+  background: #fff0f2;
+  color: #d43a57;
+}
+
 .profile-layout,
 .settings-layout,
 .form-layout {

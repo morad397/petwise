@@ -1,7 +1,7 @@
 """MongoDB connection.
 
 Collections (one per class-diagram entity):
-  users, clinics, pets, vaccinations, treatments, weights, reminders, appointments, counters
+  users, clinics, pets, vaccinations, treatments, weights, reminders, appointments, schedule_blocks, counters
 
 Every document keeps the BaseEntity fields from the class diagrams:
   _id (number), created_at, updated_at, status
@@ -77,3 +77,6 @@ def create_indexes(db: Database) -> None:
     db.reminders.create_index([("user_id", ASCENDING), ("due_date", ASCENDING)])
     db.appointments.create_index([("user_id", ASCENDING)])
     db.appointments.create_index([("clinic_id", ASCENDING), ("appointment_date", ASCENDING)])
+    db.schedule_blocks.create_index(
+        [("clinic_id", ASCENDING), ("date", ASCENDING), ("time", ASCENDING)], unique=True
+    )

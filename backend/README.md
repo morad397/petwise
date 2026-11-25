@@ -32,7 +32,8 @@ backend/
 | `treatments` | TreatmentRecord | pet_id, kind (VET_VISIT / MEDICATION), diagnosis, treatment_date, medication, appointment_id |
 | `weights` | WeightRecord | pet_id, weight_kg, recorded_date |
 | `reminders` | Reminder | user_id, pet_id, type, title, due_date, is_completed, source (set when created automatically) |
-| `appointments` | Appointment / Schedule | user_id, pet_id, clinic_id, service, appointment_date, appointment_time, status, suggested_date/time, staff_note |
+| `schedule_blocks` | Schedule | clinic_id, date, time, reason (times staff blocked) |
+| `appointments` | Appointment | user_id, pet_id, clinic_id, service, appointment_date, appointment_time, status, suggested_date/time, staff_note |
 | `counters` | — | next id for each collection |
 
 Every document has the BaseEntity fields: `_id`, `created_at`, `updated_at`, `status`.
@@ -124,6 +125,9 @@ about a minute while it wakes up, so open the site a minute before a demo.
 | POST | `/api/appointments/{id}/accept-suggestion` | pet owner | Accept the clinic's suggested time |
 | POST | `/api/appointments/{id}/status` | staff of that clinic, admin | CONFIRMED / REJECTED / RESCHEDULE_REQUESTED / IN_PROGRESS / COMPLETED |
 | GET | `/api/staff/patients` | clinic staff | Pets with appointments at my clinic |
+| GET | `/api/staff/schedule?date=YYYY-MM-DD` | clinic staff | My clinic's slots that day: free / booked / blocked |
+| POST | `/api/staff/schedule/blocks` | clinic staff | Block a time (owners can no longer book it) |
+| DELETE | `/api/staff/schedule/blocks/{id}` | clinic staff | Reopen a blocked time |
 
 \* clinic staff only for pets that have an appointment at their own clinic.
 

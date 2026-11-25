@@ -52,6 +52,11 @@ def booked_times(db: Database, clinic_id: int, day: date, exclude_id: Optional[i
     return taken
 
 
+def blocked_times(db: Database, clinic_id: int, day: date) -> dict:
+    """{time: block} for times the clinic staff blocked on that day."""
+    return {b["time"]: b for b in db.schedule_blocks.find({"clinic_id": clinic_id, "date": day.isoformat()})}
+
+
 def free_slots(
     db: Database, clinic: dict, day: date, after: Optional[str] = None, exclude_id: Optional[int] = None
 ) -> Tuple[str, List[str]]:
@@ -59,6 +64,6 @@ def free_slots(
     slots = all_slots(clinic, day)
     if slots is None:
         return "CLINIC_CLOSED", []
-    taken = booked_times(db, clinic["_id"], day, exclude_id)
+    taken = booked_times(db, clinic["_id"], day, exclude_id) | set(blocked_times(db, clinic["_id"], day))
     result = [s for s in slots if s not in taken and (after is None or s > after)]
     return ("AVAILABLE" if result else "FULLY_BOOKED"), result
