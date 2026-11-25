@@ -6,6 +6,7 @@ from pymongo.database import Database
 from app.core.deps import require_roles
 from app.database import get_db, new_document, now, to_out
 from app.roles import Role
+from app.services.notify import log_activity
 from app.schemas.clinic import ClinicCreate, ClinicOut, ClinicUpdate
 
 router = APIRouter(prefix="/clinics", tags=["Clinics"])
@@ -29,23 +30,26 @@ def get_clinic(clinic_id: int, db: Database = Depends(get_db)):
     "",
     response_model=ClinicOut,
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(require_roles(Role.ADMIN))],
 )
-def create_clinic(data: ClinicCreate, db: Database = Depends(get_db)):
+def create_clinic(data: ClinicCreate, db: Database = Depends(get_db), admin: dict = Depends(require_roles(Role.ADMIN))):
     clinic = new_document(db, "clinics", **data.model_dump(mode="json"))
     db.clinics.insert_one(clinic)
+    log_activity(db, admin, "Clinic Created", clinic["name"])
     return to_out(clinic)
 
 
 @router.put(
     "/{clinic_id}",
     response_model=ClinicOut,
-    dependencies=[Depends(require_roles(Role.ADMIN))],
 )
-def update_clinic(clinic_id: int, data: ClinicUpdate, db: Database = Depends(get_db)):
+def update_clinic(
+    clinic_id: int, data: ClinicUpdate, db: Database = Depends(get_db), admin: dict = Depends(require_roles(Role.ADMIN))
+):
     changes = data.model_dump(mode="json", exclude_unset=True)
     changes["updated_at"] = now()
     result = db.clinics.update_one({"_id": clinic_id}, {"$set": changes})
     if result.matched_count == 0:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Clinic not found")
-    return to_out(db.clinics.find_one({"_id": clinic_id}))
+    clinic = db.clinics.find_one({"_id": clinic_id})
+    log_activity(db, admin, "Clinic Updated", clinic["name"] + (f" (status {changes['status']})" if "status" in changes else ""))
+    return to_out(clinic)

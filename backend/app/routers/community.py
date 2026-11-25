@@ -15,6 +15,7 @@ from pymongo.database import Database
 from app.core.deps import get_current_user
 from app.database import get_db, new_document, now, to_out
 from app.roles import Role
+from app.services.notify import log_activity, notify
 from app.schemas.community import (
     BookmarkOut,
     CommentIn,
@@ -125,6 +126,16 @@ def delete_post(post_id: int, user: dict = Depends(get_current_user), db: Databa
     db.posts.delete_one({"_id": post_id})
     db.comments.delete_many({"post_id": post_id})
     db.post_reports.delete_many({"post_id": post_id})
+    if user["_id"] != post["author_id"]:  # removed by an admin (content moderation)
+        log_activity(db, user, "Post Removed", f"Post #{post_id} by {post['author_name']}")
+        notify(
+            db,
+            post["author_id"],
+            type="POST_REMOVED",
+            title="Your post was removed by an administrator",
+            message=(post.get("content") or "")[:80] or None,
+            link="/community",
+        )
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
@@ -165,7 +176,7 @@ def list_comments(post_id: int, user: dict = Depends(get_current_user), db: Data
 
 @router.post("/posts/{post_id}/comments", response_model=CommentOut, status_code=status.HTTP_201_CREATED)
 def add_comment(post_id: int, data: CommentIn, user: dict = Depends(get_current_user), db: Database = Depends(get_db)):
-    _load_post(db, post_id)
+    post = _load_post(db, post_id)
     content = data.content.strip()
     if not content:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "A comment cannot be empty")
@@ -174,6 +185,15 @@ def add_comment(post_id: int, data: CommentIn, user: dict = Depends(get_current_
     )
     db.comments.insert_one(comment)
     db.posts.update_one({"_id": post_id}, {"$inc": {"comment_count": 1}})
+    notify(
+        db,
+        post["author_id"],
+        type="NEW_COMMENT",
+        title=f"{user['full_name']} commented on your post",
+        message=content[:80],
+        link="/community",
+        exclude=user["_id"],
+    )
     return to_out(comment)
 
 

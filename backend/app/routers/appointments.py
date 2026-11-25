@@ -20,6 +20,7 @@ from app.core.deps import get_current_user, require_roles
 from app.database import get_db, new_document, now, to_out
 from app.roles import Role
 from app.schemas.appointment import AppointmentIn, AppointmentOut, AppointmentUpdate, SlotsOut, StatusChangeIn
+from app.services.notify import clinic_staff_ids, notify
 from app.services.reminders import add_system_reminder, remove_system_reminder
 from app.services.slots import free_slots
 
@@ -92,6 +93,41 @@ def _confirm_reminder(db: Database, appointment: dict) -> None:
     )
 
 
+OWNER_MESSAGES = {
+    "CONFIRMED": "Your appointment is confirmed",
+    "REJECTED": "Your appointment request was rejected",
+    "RESCHEDULE_REQUESTED": "The clinic suggested a new time",
+    "COMPLETED": "Visit completed",
+}
+
+
+def _notify_owner_of_status(db: Database, appointment: dict, note: Optional[str]) -> None:
+    title = OWNER_MESSAGES.get(appointment["status"])
+    if title is None:
+        return  # e.g. IN_PROGRESS: nothing to tell the owner
+    if appointment["status"] == "RESCHEDULE_REQUESTED":
+        detail = (
+            f"Suggested: {appointment['suggested_date']} at {appointment['suggested_time']}. "
+            "Accept it on the Appointments page."
+        )
+    else:
+        detail = (
+            f"{appointment['service']} for {appointment.get('pet_name')} on "
+            f"{appointment['appointment_date']} at {appointment['appointment_time']}"
+        )
+    if note:
+        detail += f" Note: {note}"
+    link = f"/pets/{appointment['pet_id']}/vet-visits" if appointment["status"] == "COMPLETED" else "/appointments"
+    notify(
+        db,
+        appointment["user_id"],
+        type=f"APPOINTMENT_{appointment['status']}",
+        title=f"{title} ({appointment.get('clinic_name')})",
+        message=detail,
+        link=link,
+    )
+
+
 # ---------- free time slots ----------
 
 @router.get("/clinics/{clinic_id}/slots", response_model=SlotsOut)
@@ -159,6 +195,14 @@ def book_appointment(data: AppointmentIn, user: dict = Depends(get_current_user)
         **data.model_dump(mode="json"),
     )
     db.appointments.insert_one(appointment)
+    notify(
+        db,
+        clinic_staff_ids(db, clinic["_id"]),
+        type="APPOINTMENT_REQUEST",
+        title=f"New appointment request: {pet['name']}",
+        message=f"{data.service} on {data.appointment_date.isoformat()} at {data.appointment_time} ({user['full_name']})",
+        link="/staff/appointments",
+    )
     return to_out(appointment)
 
 
@@ -191,7 +235,16 @@ def change_appointment(
     )
     db.appointments.update_one({"_id": appointment_id}, {"$set": changes})
     remove_system_reminder(db, f"appointment:{appointment_id}")
-    return to_out(db.appointments.find_one({"_id": appointment_id}))
+    updated = db.appointments.find_one({"_id": appointment_id})
+    notify(
+        db,
+        clinic_staff_ids(db, updated["clinic_id"]),
+        type="APPOINTMENT_CHANGED",
+        title=f"Appointment changed: {updated['pet_name']}",
+        message=f"Now {updated['service']} on {updated['appointment_date']} at {updated['appointment_time']}. Please confirm again.",
+        link="/staff/appointments",
+    )
+    return to_out(updated)
 
 
 @router.post("/appointments/{appointment_id}/cancel", response_model=AppointmentOut)
@@ -201,6 +254,14 @@ def cancel_appointment(appointment_id: int, user: dict = Depends(get_current_use
         raise HTTPException(status.HTTP_400_BAD_REQUEST, f"A {appointment['status'].lower()} appointment cannot be cancelled")
     db.appointments.update_one({"_id": appointment_id}, {"$set": {"status": "CANCELLED", "updated_at": now()}})
     remove_system_reminder(db, f"appointment:{appointment_id}")
+    notify(
+        db,
+        clinic_staff_ids(db, appointment["clinic_id"]),
+        type="APPOINTMENT_CANCELLED",
+        title=f"Appointment cancelled: {appointment['pet_name']}",
+        message=f"{appointment['service']} on {appointment['appointment_date']} at {appointment['appointment_time']}",
+        link="/staff/appointments",
+    )
     return to_out(db.appointments.find_one({"_id": appointment_id}))
 
 
@@ -225,6 +286,14 @@ def accept_suggestion(appointment_id: int, user: dict = Depends(get_current_user
     )
     appointment = db.appointments.find_one({"_id": appointment_id})
     _confirm_reminder(db, appointment)
+    notify(
+        db,
+        clinic_staff_ids(db, appointment["clinic_id"]),
+        type="APPOINTMENT_CONFIRMED",
+        title=f"New time accepted: {appointment['pet_name']}",
+        message=f"{appointment['service']} on {appointment['appointment_date']} at {appointment['appointment_time']}",
+        link="/staff/appointments",
+    )
     return to_out(appointment)
 
 
@@ -257,6 +326,7 @@ def change_status(
     db.appointments.update_one({"_id": appointment_id}, {"$set": changes})
     appointment = db.appointments.find_one({"_id": appointment_id})
     source = f"appointment:{appointment_id}"
+    _notify_owner_of_status(db, appointment, data.note)
 
     if data.status == "CONFIRMED":
         _confirm_reminder(db, appointment)

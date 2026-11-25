@@ -2,14 +2,11 @@ import { useState, useEffect } from 'react';
 import { Server, Database, Brain, Bell, CreditCard, Activity, Save, TriangleAlert, CheckCircle } from 'lucide-react';
 import StatusBadge from '../../components/admin/StatusBadge';
 import { resetDevelopmentData } from '../../services/dataService';
+import { getActivityLog, getAdminStats } from '../../services/adminService';
+import { getEmergencySettings, updateEmergencySettings } from '../../services/emergencyService';
 
-const MOCK_ACTIVITY_LOG = [
-  { id: 1, date: 'Today, 10:45 AM', user: 'Hanan Taha', action: 'User Role Updated', target: 'John Doe (Pet Owner -> Staff)', result: 'Success' },
-  { id: 2, date: 'Today, 09:12 AM', user: 'System', action: 'Automated Backup', target: 'Main Database', result: 'Success' },
-  { id: 3, date: 'Yesterday, 14:30 PM', user: 'Mike Ross', action: 'Product Stock Changed', target: 'Premium Pet Shampoo (+15)', result: 'Success' },
-  { id: 4, date: 'Yesterday, 11:20 AM', user: 'Hanan Taha', action: 'System Setting Updated', target: 'Maintenance Mode (Enabled)', result: 'Success' },
-  { id: 5, date: 'Oct 28, 2026', user: 'System', action: 'Payment Gateway Sync', target: 'Stripe API', result: 'Failed' },
-];
+const formatLogDate = (iso) =>
+  new Date(iso).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 
 export default function AdminSystem() {
   const [settings, setSettings] = useState({
@@ -30,6 +27,19 @@ export default function AdminSystem() {
   });
   
   const [logFilter, setLogFilter] = useState('All');
+  const [activityLog, setActivityLog] = useState([]);
+  const [apiStatus, setApiStatus] = useState('Checking');
+
+  // Real admin actions recorded by the server (role changes, products, orders, moderation...)
+  useEffect(() => {
+    getActivityLog()
+      .then(setActivityLog)
+      .catch(() => setActivityLog([]));
+    // the stats call goes through the API to MongoDB, so it checks both
+    getAdminStats()
+      .then(() => setApiStatus('Operational'))
+      .catch(() => setApiStatus('Error'));
+  }, []);
 
   // Development Reset State
   const [showResetModal, setShowResetModal] = useState(false);
@@ -58,11 +68,8 @@ export default function AdminSystem() {
     if (saved) {
       setSettings(JSON.parse(saved));
     }
-    
-    try {
-      const { getEmergencySettings } = require('../../services/emergencyService');
-      setEmergencySettings(getEmergencySettings());
-    } catch(e) {}
+
+    setEmergencySettings(getEmergencySettings());
   }, []);
 
   const handleSaveSettings = (e) => {
@@ -75,10 +82,9 @@ export default function AdminSystem() {
     e.preventDefault();
     if (window.confirm("Are you sure you want to update the global emergency contact information?")) {
       try {
-        const { updateEmergencySettings } = require('../../services/emergencyService');
         updateEmergencySettings(emergencySettings);
         alert('Emergency settings saved successfully!');
-      } catch(e) {
+      } catch {
         alert('Failed to save emergency settings.');
       }
     }
@@ -86,11 +92,11 @@ export default function AdminSystem() {
 
   const services = [
     { name: 'Frontend', icon: Activity, status: 'Operational' },
-    { name: 'Backend API', icon: Server, status: 'Not Connected' },
-    { name: 'Database', icon: Database, status: 'Not Connected' },
+    { name: 'Backend API', icon: Server, status: apiStatus },
+    { name: 'Database', icon: Database, status: apiStatus },
     { name: 'AI Vet Service', icon: Brain, status: 'Planned' },
-    { name: 'Notification Service', icon: Bell, status: 'Planned' },
-    { name: 'Payment Service', icon: CreditCard, status: 'Not Connected' },
+    { name: 'Notification Service', icon: Bell, status: apiStatus },
+    { name: 'Payment Service', icon: CreditCard, status: 'Test Mode' },
   ];
 
   const permissions = [
@@ -104,7 +110,7 @@ export default function AdminSystem() {
     { feature: 'System Settings', owner: false, staff: false, admin: true },
   ];
 
-  const filteredLogs = logFilter === 'All' ? MOCK_ACTIVITY_LOG : MOCK_ACTIVITY_LOG.filter(log => log.result === logFilter);
+  const filteredLogs = logFilter === 'All' ? activityLog : activityLog.filter(log => log.result === logFilter);
 
   return (
     <>
@@ -261,8 +267,8 @@ export default function AdminSystem() {
               <tbody>
                 {filteredLogs.map(log => (
                   <tr key={log.id}>
-                    <td><small>{log.date}</small></td>
-                    <td><strong>{log.user}</strong></td>
+                    <td><small>{formatLogDate(log.createdAt)}</small></td>
+                    <td><strong>{log.actorName}</strong></td>
                     <td>{log.action}</td>
                     <td>{log.target}</td>
                     <td>
@@ -272,6 +278,7 @@ export default function AdminSystem() {
                 ))}
               </tbody>
             </table>
+            {filteredLogs.length === 0 && <p style={{ color: '#64748b', textAlign: 'center', padding: '16px' }}>No admin activity recorded yet.</p>}
           </div>
         </section>
 

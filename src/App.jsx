@@ -7,6 +7,8 @@ import AdminUsers from './pages/admin/AdminUsers';
 import AdminInventory from './pages/admin/AdminInventory';
 import AdminSystem from './pages/admin/AdminSystem';
 import AdminClinics from './pages/admin/AdminClinics';
+import AdminOrders from './pages/admin/AdminOrders';
+import AdminReports from './pages/admin/AdminReports';
 import Dashboard from './pages/Dashboard';
 import PetProfile from './pages/PetProfile';
 import AddPet from './pages/AddPet';
@@ -61,6 +63,8 @@ function App() {
           <Route path="inventory" element={<AdminInventory />} />
           <Route path="system" element={<AdminSystem />} />
           <Route path="clinics" element={<AdminClinics />} />
+          <Route path="orders" element={<AdminOrders />} />
+          <Route path="reports" element={<AdminReports />} />
         </Route>
       </Route>
 

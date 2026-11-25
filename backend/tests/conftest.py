@@ -12,7 +12,7 @@ from app.main import app
 
 @pytest.fixture()
 def db():
-    database = mongomock.MongoClient()["petwise_test"]
+    database = mongomock.MongoClient(tz_aware=True)["petwise_test"]
     create_indexes(database)
     return database
 

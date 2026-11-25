@@ -8,6 +8,7 @@ from app.core.deps import require_roles
 from app.core.security import hash_password
 from app.database import get_db, new_document, now, to_out
 from app.roles import Role
+from app.services.notify import log_activity
 from app.schemas.user import AdminUserCreateIn, AdminUserUpdateIn, UserOut
 
 # Admin-only user management
@@ -28,7 +29,7 @@ def list_users(db: Database = Depends(get_db), _: dict = Depends(admin_only)):
 
 
 @router.post("", response_model=UserOut, status_code=status.HTTP_201_CREATED)
-def create_user(data: AdminUserCreateIn, db: Database = Depends(get_db), _: dict = Depends(admin_only)):
+def create_user(data: AdminUserCreateIn, db: Database = Depends(get_db), admin: dict = Depends(admin_only)):
     if db.users.find_one({"email": data.email}):
         raise HTTPException(status.HTTP_409_CONFLICT, "An account with this email already exists.")
     is_staff = data.role == Role.CLINIC_STAFF.value
@@ -47,6 +48,7 @@ def create_user(data: AdminUserCreateIn, db: Database = Depends(get_db), _: dict
         department=(data.department or "General Medicine") if is_staff else None,
     )
     db.users.insert_one(user)
+    log_activity(db, admin, "User Created", f"{user['full_name']} ({user['role']})")
     return to_out(user)
 
 
@@ -73,6 +75,12 @@ def update_user(
         changes["department"] = None
     changes["updated_at"] = now()
     db.users.update_one({"_id": user_id}, {"$set": changes})
+    described = []
+    if changes.get("role") and changes["role"] != user["role"]:
+        described.append(f"role {user['role']} -> {changes['role']}")
+    if changes.get("status") and changes["status"] != user.get("status"):
+        described.append(f"status {user.get('status')} -> {changes['status']}")
+    log_activity(db, admin, "User Updated", user["full_name"] + (f" ({', '.join(described)})" if described else ""))
     return to_out(db.users.find_one({"_id": user_id}))
 
 
@@ -88,4 +96,6 @@ def delete_user(user_id: int, db: Database = Depends(get_db), admin: dict = Depe
     delete_pet_data(db, pet_ids)
     db.reminders.delete_many({"user_id": user_id})
     db.carts.delete_one({"_id": user_id})
+    db.notifications.delete_many({"user_id": user_id})
+    log_activity(db, admin, "User Deleted", f"{user['full_name']} ({user['email']})")
     return Response(status_code=status.HTTP_204_NO_CONTENT)

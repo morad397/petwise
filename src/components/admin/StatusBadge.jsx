@@ -4,7 +4,7 @@ export default function StatusBadge({ status, type }) {
   // Define styles based on generic types or specific statuses
   if (type === 'success' || status === 'Active' || status === 'Operational' || status === 'In Stock') {
     badgeClass += 'badge-success';
-  } else if (type === 'warning' || status === 'Low Stock' || status === 'Planned' || status === 'Maintenance') {
+  } else if (type === 'warning' || status === 'Low Stock' || status === 'Planned' || status === 'Maintenance' || status === 'Test Mode' || status === 'Checking') {
     badgeClass += 'badge-warning';
   } else if (type === 'danger' || status === 'Suspended' || status === 'Out of Stock' || status === 'Not Connected' || status === 'Error') {
     badgeClass += 'badge-danger';

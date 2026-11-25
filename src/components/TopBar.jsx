@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useCart } from '../contexts/CartContext';
 import { logout } from '../services/authService';
 import { productImage, formatPrice } from '../services/shopService';
+import NotificationBell from './NotificationBell';
 import { 
   PawPrint, 
   Home, 
@@ -108,6 +109,8 @@ export default function TopBar() {
     { name: 'Users', path: '/admin/users', icon: Users },
     { name: 'Clinics', path: '/admin/clinics', icon: Home },
     { name: 'Inventory', path: '/admin/inventory', icon: ShoppingBag },
+    { name: 'Orders', path: '/admin/orders', icon: ShoppingCart },
+    { name: 'Reports', path: '/admin/reports', icon: Siren },
     { name: 'System', path: '/admin/system', icon: Bell },
   ];
 
@@ -153,6 +156,8 @@ export default function TopBar() {
         <button className="icon-btn" onClick={toggleDarkMode} title="Toggle Theme">
           {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
         </button>
+
+        <NotificationBell />
 
         {!(isAdmin || isStaff) && (
           <div style={{ position: 'relative' }}>

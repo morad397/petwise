@@ -16,6 +16,7 @@ from pymongo.database import Database
 from app.core.deps import get_current_user, require_roles
 from app.database import get_db, new_document, now, to_out
 from app.roles import Role
+from app.services.notify import log_activity, notify
 from app.schemas.shop import (
     CartOut,
     CartQuantityIn,
@@ -50,27 +51,35 @@ def get_product(product_id: int, db: Database = Depends(get_db)):
 
 
 @router.post("/products", response_model=ProductOut, status_code=status.HTTP_201_CREATED)
-def create_product(data: ProductIn, db: Database = Depends(get_db), _: dict = Depends(admin_only)):
+def create_product(data: ProductIn, db: Database = Depends(get_db), admin: dict = Depends(admin_only)):
     product = new_document(db, "products", **data.model_dump())
     db.products.insert_one(product)
+    log_activity(db, admin, "Product Created", f"{product['name']} (stock {product['stock_quantity']})")
     return to_out(product)
 
 
 @router.put("/products/{product_id}", response_model=ProductOut)
-def update_product(product_id: int, data: ProductUpdate, db: Database = Depends(get_db), _: dict = Depends(admin_only)):
+def update_product(product_id: int, data: ProductUpdate, db: Database = Depends(get_db), admin: dict = Depends(admin_only)):
+    before = db.products.find_one({"_id": product_id})
+    if before is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Product not found")
     changes = data.model_dump(exclude_unset=True)
     changes["updated_at"] = now()
-    result = db.products.update_one({"_id": product_id}, {"$set": changes})
-    if result.matched_count == 0:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Product not found")
+    db.products.update_one({"_id": product_id}, {"$set": changes})
+    detail = before["name"]
+    if "stock_quantity" in changes and changes["stock_quantity"] != before["stock_quantity"]:
+        detail += f" (stock {before['stock_quantity']} -> {changes['stock_quantity']})"
+    log_activity(db, admin, "Product Updated", detail)
     return to_out(db.products.find_one({"_id": product_id}))
 
 
 @router.delete("/products/{product_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_product(product_id: int, db: Database = Depends(get_db), _: dict = Depends(admin_only)):
-    result = db.products.delete_one({"_id": product_id})
-    if result.deleted_count == 0:
+def delete_product(product_id: int, db: Database = Depends(get_db), admin: dict = Depends(admin_only)):
+    product = db.products.find_one({"_id": product_id})
+    if product is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Product not found")
+    db.products.delete_one({"_id": product_id})
+    log_activity(db, admin, "Product Deleted", product["name"])
     # remove it from everyone's cart (past orders keep their own copy of the item)
     db.carts.update_many({}, {"$pull": {"items": {"product_id": product_id}}})
     return Response(status_code=status.HTTP_204_NO_CONTENT)
@@ -235,6 +244,8 @@ def cancel_order(order_id: int, user: dict = Depends(get_current_user), db: Data
     return to_out(_cancel(db, order))
 
 
+ORDER_WORDS = {"SHIPPED": "has shipped", "DELIVERED": "was delivered", "CANCELLED": "was cancelled by the shop"}
+
 ORDER_TRANSITIONS = {"SHIPPED": ["PROCESSING"], "DELIVERED": ["SHIPPED"], "CANCELLED": ["PROCESSING"]}
 
 
@@ -245,6 +256,15 @@ def change_order_status(
     order = _load_order(db, order_id, admin)
     if order["status"] not in ORDER_TRANSITIONS[data.status]:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, f"Cannot change a {order['status'].lower()} order to {data.status.lower()}")
+    log_activity(db, admin, "Order Status Changed", f"Order #{order_id}: {order['status']} -> {data.status}")
+    notify(
+        db,
+        order["user_id"],
+        type=f"ORDER_{data.status}",
+        title=f"Order #{order_id} {ORDER_WORDS[data.status]}",
+        message=f"{len(order['items'])} item(s), total ${order['total_amount']:.2f}",
+        link="/orders",
+    )
     if data.status == "CANCELLED":
         return to_out(_cancel(db, order))
     changes = {"status": data.status, "updated_at": now()}

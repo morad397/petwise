@@ -38,6 +38,8 @@ backend/
 | `posts` | CommunityPost / Like | author_id, content, media_url, hashtags, liked_by [user ids], bookmarked_by, comment_count |
 | `comments` | Comment | post_id, author_id, content |
 | `post_reports` | — | post_id, reported_by, reason |
+| `notifications` | — | user_id, type, title, message, link, is_read |
+| `activity_log` | Analytics | actor_name, action, target, result (admin actions) |
 | `schedule_blocks` | Schedule | clinic_id, date, time, reason (times staff blocked) |
 | `appointments` | Appointment | user_id, pet_id, clinic_id, service, appointment_date, appointment_time, status, suggested_date/time, staff_note |
 | `counters` | — | next id for each collection |
@@ -156,6 +158,22 @@ about a minute while it wakes up, so open the site a minute before a demo.
 | POST | `/api/posts/{id}/like` · `/bookmark` · `/report` | logged in | Toggle like / save, report |
 | GET/POST | `/api/posts/{id}/comments` | logged in | Comments |
 | DELETE | `/api/comments/{id}` | author, admin | Delete a comment |
+
+### Module 5: notifications and administration
+
+| Method | Path | Who | What |
+|---|---|---|---|
+| GET | `/api/notifications` | logged in | My notifications + unread count |
+| POST | `/api/notifications/{id}/read` · `/read-all` | logged in | Mark read |
+| DELETE | `/api/notifications/{id}` | logged in | Remove |
+| GET | `/api/admin/stats` | admin | Dashboard numbers, recent users and orders |
+| GET | `/api/admin/reports` | admin | Reported posts with reasons |
+| DELETE | `/api/admin/reports/{postId}` | admin | Dismiss reports (keep the post) |
+| GET | `/api/admin/activity` | admin | Activity log of admin actions |
+
+Notifications are sent on events: appointment requested / changed / cancelled (to the clinic's staff),
+confirmed / rejected / new time suggested / completed (to the owner), order shipped / delivered /
+cancelled (to the buyer), a new comment on your post, and a post removed by an admin.
 
 Payment is simulated (test environment): "TEST_PAYMENT" is marked paid with a fake reference,
 "CASH_ON_DELIVERY" is paid on delivery. No card details are collected or stored.

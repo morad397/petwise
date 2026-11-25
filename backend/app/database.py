@@ -2,7 +2,7 @@
 
 Collections (one per class-diagram entity):
   users, clinics, pets, vaccinations, treatments, weights, reminders, appointments, schedule_blocks,
-  products, carts, orders, posts, comments, post_reports, counters
+  products, carts, orders, posts, comments, post_reports, notifications, activity_log, counters
 
 Every document keeps the BaseEntity fields from the class diagrams:
   _id (number), created_at, updated_at, status
@@ -18,7 +18,9 @@ from app.config import settings
 
 
 def _make_client() -> MongoClient:
-    options = {"serverSelectionTimeoutMS": 8000}
+    # tz_aware: dates come back marked as UTC, so the API sends "...Z" and browsers
+    # convert them to the viewer's local time correctly.
+    options = {"serverSelectionTimeoutMS": 8000, "tz_aware": True}
     # Cloud databases (MongoDB Atlas) use TLS; certifi supplies trusted certificates.
     if settings.mongodb_url.startswith("mongodb+srv://"):
         options["tlsCAFile"] = certifi.where()
@@ -35,7 +37,7 @@ def get_db() -> Database:
 
 
 def now() -> datetime:
-    return datetime.now(timezone.utc).replace(tzinfo=None)
+    return datetime.now(timezone.utc)
 
 
 def next_id(db: Database, collection: str) -> int:
@@ -82,6 +84,7 @@ def create_indexes(db: Database) -> None:
     db.orders.create_index([("user_id", ASCENDING)])
     db.posts.create_index([("hashtags", ASCENDING)])
     db.comments.create_index([("post_id", ASCENDING)])
+    db.notifications.create_index([("user_id", ASCENDING), ("is_read", ASCENDING)])
     db.schedule_blocks.create_index(
         [("clinic_id", ASCENDING), ("date", ASCENDING), ("time", ASCENDING)], unique=True
     )
