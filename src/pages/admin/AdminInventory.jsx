@@ -3,23 +3,27 @@ import { Search, Filter, Trash2, Edit2, Plus } from 'lucide-react';
 import StatusBadge from '../../components/admin/StatusBadge';
 import ConfirmationModal from '../../components/admin/ConfirmationModal';
 
-// Images imported for initialization matching Shop.jsx
-import shopShampoo from '../../assets/shop-shampoo.png';
-import shopToy from '../../assets/shop-toy.png';
-import shopFood from '../../assets/shop-food.png';
-import shopClothes from '../../assets/shop-clothes.png';
-import shopBed from '../../assets/shop-bed.png';
+import { getProducts, createProduct, updateProduct, deleteProduct, productImage } from '../../services/shopService';
 
-const DEFAULT_INVENTORY = [
-  { id: '1', name: 'Premium Pet Shampoo', price: 18, category: 'Grooming', detail: 'Gentle, soothing wash for a shiny, healthy coat.', image: shopShampoo, stock: 15 },
-  { id: '2', name: 'Interactive Rubber Ball', price: 12, category: 'Toys', detail: 'Durable, bouncy toy perfect for fetch and playtime.', image: shopToy, stock: 45 },
-  { id: '3', name: 'Healthy Dry Pet Food', price: 45, category: 'Food', detail: 'Nutrient-rich, balanced meal for optimal health.', image: shopFood, stock: 5 },
-  { id: '4', name: 'Cozy Knitted Sweater', price: 24, category: 'Accessories', detail: 'Keep your pet warm and stylish in cold weather.', image: shopClothes, stock: 12 },
-  { id: '5', name: 'Luxurious Plush Pet Bed', price: 65, category: 'Beds', detail: 'Ultra-soft, comfortable bed for perfect sleep.', image: shopBed, stock: 0 },
-  { id: '6', name: 'Cat Litter Tray', price: 22, category: 'Accessories', detail: 'Easy-clean enclosure for daily care.', image: 'https://images.unsplash.com/photo-1615461066841-211d7a4166b5?auto=format&fit=crop&w=900&q=80', stock: 8 },
-  { id: '7', name: 'Dog Leash & Collar', price: 21, category: 'Accessories', detail: 'Comfortable everyday walking set.', image: 'https://images.unsplash.com/photo-1591946614720-90a587da4a36?auto=format&fit=crop&w=900&q=80', stock: 24 },
-  { id: '8', name: 'Dog Bath Set', price: 19, category: 'Grooming', detail: 'Cleaning essentials for grooming and hygiene.', image: 'https://images.unsplash.com/photo-1601758228041-f3b2795255f1?auto=format&fit=crop&w=900&q=80', stock: 0 }
-];
+// API product <-> the shape this page's table and form use
+const fromApi = (p) => ({
+  id: p.id,
+  name: p.name,
+  price: p.price,
+  category: p.category,
+  stock: p.stockQuantity,
+  detail: p.description || '',
+  image: p.imageUrl || '',
+  status: p.status,
+});
+const toApi = (f) => ({
+  name: f.name.trim(),
+  price: Number(f.price),
+  category: f.category,
+  stockQuantity: Number(f.stock),
+  description: f.detail?.trim() || null,
+  imageUrl: f.image?.trim() || null,
+});
 
 export default function AdminInventory() {
   const [products, setProducts] = useState([]);
@@ -34,21 +38,14 @@ export default function AdminInventory() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editProductData, setEditProductData] = useState(null);
 
-  useEffect(() => {
-    const savedStr = localStorage.getItem('petwise-inventory');
-    const saved = JSON.parse(savedStr || '[]');
-    if (!savedStr) {
-      localStorage.setItem('petwise-inventory', JSON.stringify(DEFAULT_INVENTORY));
-      setProducts(DEFAULT_INVENTORY);
-    } else {
-      setProducts(saved);
-    }
-  }, []);
+  const loadProducts = () =>
+    getProducts({ includeHidden: true })
+      .then((list) => setProducts(list.map(fromApi)))
+      .catch((e) => alert(e.message));
 
-  const saveProducts = (updated) => {
-    setProducts(updated);
-    localStorage.setItem('petwise-inventory', JSON.stringify(updated));
-  };
+  useEffect(() => {
+    loadProducts();
+  }, []);
 
   const getStockStatus = (qty) => {
     if (qty > 10) return 'In Stock';
@@ -61,9 +58,14 @@ export default function AdminInventory() {
     setIsDeleteModalOpen(true);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (productToDelete) {
-      saveProducts(products.filter(p => p.id !== productToDelete.id));
+      try {
+        await deleteProduct(productToDelete.id);
+        await loadProducts();
+      } catch (e) {
+        alert(e.message);
+      }
     }
     setIsDeleteModalOpen(false);
     setProductToDelete(null);
@@ -73,25 +75,26 @@ export default function AdminInventory() {
     if (prod) {
       setEditProductData({ ...prod });
     } else {
-      setEditProductData({ id: Date.now().toString(), name: '', price: 0, category: 'Food', stock: 0, detail: '', image: '' });
+      setEditProductData({ id: null, name: '', price: 0, category: 'Food', stock: 0, detail: '', image: '' });
     }
     setIsEditModalOpen(true);
   };
 
-  const saveProductEdit = (e) => {
+  const saveProductEdit = async (e) => {
     e.preventDefault();
     if (editProductData.price < 0) return alert('Price cannot be negative');
     if (editProductData.stock < 0) return alert('Stock cannot be negative');
-    
-    let updated;
-    const exists = products.find(p => p.id === editProductData.id);
-    if (exists) {
-      updated = products.map(p => p.id === editProductData.id ? editProductData : p);
-    } else {
-      updated = [...products, editProductData];
+    try {
+      if (editProductData.id) {
+        await updateProduct(editProductData.id, toApi(editProductData));
+      } else {
+        await createProduct(toApi(editProductData));
+      }
+      await loadProducts();
+      setIsEditModalOpen(false);
+    } catch (err) {
+      alert(err.message);
     }
-    saveProducts(updated);
-    setIsEditModalOpen(false);
   };
 
   let displayed = products.filter(p => {
@@ -179,7 +182,7 @@ export default function AdminInventory() {
                 <tr key={prod.id}>
                   <td>
                     <div className="table-user">
-                      {prod.image && <img src={prod.image} alt={prod.name} style={{ width: '32px', height: '32px', borderRadius: '4px', objectFit: 'cover', display: 'none' }} />}
+                      <img src={productImage(prod.image)} alt={prod.name} style={{ width: '32px', height: '32px', borderRadius: '4px', objectFit: 'cover' }} />
                       <strong>{prod.name}</strong>
                     </div>
                   </td>
@@ -222,7 +225,7 @@ export default function AdminInventory() {
       {isEditModalOpen && editProductData && (
         <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
           <div className="modal-content" style={{ background: 'white', padding: '24px', borderRadius: '16px', width: '100%', maxWidth: '500px' }}>
-            <h3 style={{ margin: '0 0 16px 0' }}>{products.find(p => p.id === editProductData.id) ? 'Edit Product' : 'Add Product'}</h3>
+            <h3 style={{ margin: '0 0 16px 0' }}>{editProductData.id ? 'Edit Product' : 'Add Product'}</h3>
             <form onSubmit={saveProductEdit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div className="input-group">
                 <label>Product Name</label>

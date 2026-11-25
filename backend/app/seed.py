@@ -3,6 +3,7 @@
 This runs automatically every time the server starts (and is safe to repeat):
 - creates the indexes (unique email, ...)
 - adds the 3 demo clinics if there are no clinics yet
+- adds the 8 demo shop products if there are no products yet
 - creates the admin account from ADMIN_EMAIL / ADMIN_PASSWORD if it does not exist
 
 You can also run it by hand from the backend folder:  python -m app.seed
@@ -68,8 +69,39 @@ DEMO_CLINICS = [
 ]
 
 
+# Starter products (the ones the shop prototype showed). "asset:" images are bundled with the frontend.
+DEMO_PRODUCTS = [
+    ("Premium Pet Shampoo", "Grooming", 18, 15, "asset:shop-shampoo", "Gentle, soothing wash for a shiny, healthy coat."),
+    ("Interactive Rubber Ball", "Toys", 12, 45, "asset:shop-toy", "Durable, bouncy toy perfect for fetch and playtime."),
+    ("Healthy Dry Pet Food", "Food", 45, 5, "asset:shop-food", "Nutrient-rich, balanced meal for optimal health."),
+    ("Cozy Knitted Sweater", "Accessories", 24, 12, "asset:shop-clothes", "Keep your pet warm and stylish in cold weather."),
+    ("Luxurious Plush Pet Bed", "Beds", 65, 0, "asset:shop-bed", "Ultra-soft, comfortable bed for perfect sleep."),
+    ("Cat Litter Tray", "Accessories", 22, 8,
+     "https://images.unsplash.com/photo-1615461066841-211d7a4166b5?auto=format&fit=crop&w=900&q=80",
+     "Easy-clean enclosure for daily care."),
+    ("Dog Leash & Collar", "Accessories", 21, 24,
+     "https://images.unsplash.com/photo-1591946614720-90a587da4a36?auto=format&fit=crop&w=900&q=80",
+     "Comfortable everyday walking set."),
+    ("Dog Bath Set", "Grooming", 19, 0,
+     "https://images.unsplash.com/photo-1601758228041-f3b2795255f1?auto=format&fit=crop&w=900&q=80",
+     "Cleaning essentials for grooming and hygiene."),
+]
+
+
 def seed(db: Database) -> None:
     create_indexes(db)
+
+    if db.products.count_documents({}) == 0:
+        db.products.insert_many(
+            [
+                new_document(
+                    db, "products", name=name, category=category, price=float(price), stock_quantity=stock,
+                    image_url=image, description=description,
+                )
+                for name, category, price, stock, image, description in DEMO_PRODUCTS
+            ]
+        )
+        print(f"Added {len(DEMO_PRODUCTS)} demo products.")
 
     if db.clinics.count_documents({}) == 0:
         db.clinics.insert_many([new_document(db, "clinics", **c) for c in DEMO_CLINICS])

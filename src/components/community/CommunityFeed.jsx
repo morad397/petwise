@@ -1,8 +1,7 @@
-import React from 'react';
 import PostCard from './PostCard';
 import { getHiddenPosts } from '../../services/communityService';
 
-export default function CommunityFeed({ posts, currentUser, users, onPostDeleted, activeFilter, clearFilter }) {
+export default function CommunityFeed({ posts, currentUser, onPostDeleted, onPostUpdated, activeFilter, clearFilter }) {
   const hiddenPosts = getHiddenPosts(currentUser.id);
 
   // Filter posts
@@ -36,9 +35,9 @@ export default function CommunityFeed({ posts, currentUser, users, onPostDeleted
           <PostCard 
             key={post.id} 
             post={post} 
-            currentUser={currentUser} 
-            users={users} 
+            currentUser={currentUser}
             onPostDeleted={onPostDeleted}
+            onPostUpdated={onPostUpdated}
             onPostHidden={onPostDeleted} // We can reuse the refresh trigger
           />
         ))

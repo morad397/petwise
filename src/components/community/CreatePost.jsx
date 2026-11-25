@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { Image as ImageIcon, Video, Smile, X } from 'lucide-react';
 import { createPost } from '../../services/communityService';
 import UserAvatar from '../UserAvatar';
@@ -55,13 +55,12 @@ export default function CreatePost({ currentUser, onPostCreated, userPets }) {
         mediaType = mediaFile.type.startsWith('video') ? 'video' : 'image';
       }
 
-      const newPost = createPost({
-        authorId: currentUser.id,
+      // The server takes the author from the login token and extracts #hashtags
+      const newPost = await createPost({
         content: content.trim(),
-        mediaUrl,
-        mediaType,
-        petId: selectedPetId || undefined,
-        hashtags: [] // hashtags are auto-extracted in service
+        mediaUrl: mediaUrl || null,
+        mediaType: mediaType || null,
+        petId: selectedPetId ? Number(selectedPetId) : null,
       });
 
       setContent('');
@@ -71,7 +70,7 @@ export default function CreatePost({ currentUser, onPostCreated, userPets }) {
         onPostCreated(newPost);
       }
     } catch (err) {
-      alert("Failed to create post.");
+      alert(err.message || "Failed to create post.");
       console.error(err);
     } finally {
       setIsSaving(false);

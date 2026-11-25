@@ -2,6 +2,7 @@ import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { useCart } from '../contexts/CartContext';
 import { logout } from '../services/authService';
+import { productImage, formatPrice } from '../services/shopService';
 import { 
   PawPrint, 
   Home, 
@@ -24,7 +25,7 @@ import {
 export default function TopBar() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { cart, isCartOpen, toggleCart, removeFromCart } = useCart();
+  const { cart, isCartOpen, toggleCart, closeCart, refreshCart, removeFromCart, changeQuantity, resetCart } = useCart();
   const [isAdmin, setIsAdmin] = useState(false);
   const [isStaff, setIsStaff] = useState(false);
   const [userName, setUserName] = useState('User');
@@ -47,13 +48,29 @@ export default function TopBar() {
       console.error('Failed to parse user', e);
     }
 
+    // Load this user's cart from the server
+    refreshCart();
+
     // Load theme preference
     const savedTheme = localStorage.getItem('petwise-theme');
     if (savedTheme === 'dark') {
       setIsDarkMode(true);
       document.body.classList.add('dark');
     }
-  }, []);
+  }, [refreshCart]);
+
+  const runCartAction = async (action) => {
+    try {
+      await action();
+    } catch (error) {
+      alert(error.message);
+    }
+  };
+
+  const goToCheckout = () => {
+    closeCart();
+    navigate('/checkout');
+  };
 
   const toggleDarkMode = () => {
     setIsDarkMode(prev => {
@@ -71,6 +88,7 @@ export default function TopBar() {
 
   const handleLogout = () => {
     logout();
+    resetCart();
     navigate('/login');
   };
 
@@ -103,10 +121,7 @@ export default function TopBar() {
 
   const navLinks = isAdmin ? adminNavLinks : (isStaff ? staffNavLinks : userNavLinks);
 
-  const cartTotal = cart.reduce((total, item) => {
-    const priceNum = parseFloat(item.price.replace('$', ''));
-    return total + (priceNum * item.quantity);
-  }, 0);
+  const cartTotal = cart.total;
 
   return (
     <header className="page-topbar">
@@ -143,8 +158,8 @@ export default function TopBar() {
           <div style={{ position: 'relative' }}>
             <button className="icon-btn" onClick={toggleCart}>
               <ShoppingCart size={20} />
-              {cart.length > 0 && (
-                <span className="cart-badge">{cart.length}</span>
+              {cart.itemCount > 0 && (
+                <span className="cart-badge">{cart.itemCount}</span>
               )}
             </button>
             
@@ -155,30 +170,37 @@ export default function TopBar() {
                   <button className="icon-btn" onClick={toggleCart}><X size={16} /></button>
                 </div>
                 <div className="cart-items">
-                  {cart.length === 0 ? (
+                  {cart.items.length === 0 ? (
                     <p className="empty-cart">Your cart is empty.</p>
                   ) : (
-                    cart.map((item) => (
-                      <div key={item.name} className="cart-item">
-                        <img src={item.image} alt={item.name} />
+                    cart.items.map((item) => (
+                      <div key={item.productId} className="cart-item">
+                        <img src={productImage(item.imageUrl)} alt={item.name} />
                         <div className="cart-item-info">
                           <p>{item.name}</p>
-                          <strong>{item.price} x {item.quantity}</strong>
+                          <strong>{formatPrice(item.unitPrice)} x {item.quantity}</strong>
+                          <div style={{ display: 'flex', gap: '6px', marginTop: '4px' }}>
+                            <button className="icon-btn" style={{ width: 24, height: 24 }} title="One less"
+                              onClick={() => runCartAction(() => changeQuantity(item.productId, item.quantity - 1))}>−</button>
+                            <button className="icon-btn" style={{ width: 24, height: 24 }} title="One more"
+                              disabled={item.quantity >= item.inStock}
+                              onClick={() => runCartAction(() => changeQuantity(item.productId, item.quantity + 1))}>+</button>
+                          </div>
                         </div>
-                        <button className="icon-btn remove-btn" onClick={() => removeFromCart(item.name)}>
+                        <button className="icon-btn remove-btn" onClick={() => runCartAction(() => removeFromCart(item.productId))}>
                           <X size={14} />
                         </button>
                       </div>
                     ))
                   )}
                 </div>
-                {cart.length > 0 && (
+                {cart.items.length > 0 && (
                   <div className="cart-footer">
                     <div className="cart-total">
                       <span>Total:</span>
                       <strong>${cartTotal.toFixed(2)}</strong>
                     </div>
-                    <button className="btn btn-primary" style={{ width: '100%' }}>Checkout</button>
+                    <button className="btn btn-primary" style={{ width: '100%' }} onClick={goToCheckout}>Checkout</button>
                   </div>
                 )}
               </div>

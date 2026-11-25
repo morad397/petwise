@@ -1,9 +1,10 @@
 // communityService.js
-// Handles localStorage mock database operations for the Community feature
+// Community feature: posts, comments and likes come from the API (MongoDB);
+// stories, groups, follows and hidden posts are still stored in this browser.
+
+import { apiRequest } from './api';
 
 const DB_KEYS = {
-  POSTS: 'petwise-community-posts',
-  COMMENTS: 'petwise-community-comments',
   STORIES: 'petwise-community-stories',
   GROUPS: 'petwise-community-groups',
   FOLLOWS: 'petwise-community-follows',
@@ -23,128 +24,34 @@ const writeDB = (key, data) => {
   localStorage.setItem(key, JSON.stringify(data));
 };
 
-// --- Posts ---
-export const getPosts = () => {
-  return readDB(DB_KEYS.POSTS).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+// --- Posts, comments, likes, saved posts, reports (API) ---
+// Posts: { id, authorId, authorName, content, mediaUrl, mediaType, petName, hashtags,
+//          likeCount, likedByMe, bookmarkedByMe, commentCount, createdAt }
+export const getPosts = ({ hashtag, saved } = {}) => {
+  const params = new URLSearchParams();
+  if (hashtag) params.set('hashtag', hashtag);
+  if (saved) params.set('saved', 'true');
+  const query = params.toString();
+  return apiRequest(`/posts${query ? `?${query}` : ''}`);
 };
 
-export const getPostById = (postId) => {
-  return readDB(DB_KEYS.POSTS).find(p => p.id === postId);
-};
+export const createPost = (data) => apiRequest('/posts', { method: 'POST', body: data });
+export const updatePost = (postId, content) => apiRequest(`/posts/${postId}`, { method: 'PUT', body: { content } });
+export const deletePost = (postId) => apiRequest(`/posts/${postId}`, { method: 'DELETE' });
 
-export const createPost = (postData) => {
-  const posts = readDB(DB_KEYS.POSTS);
-  
-  // Extract hashtags from content if not provided
-  let hashtags = postData.hashtags || [];
-  if (postData.content) {
-    const extracted = postData.content.match(/#[\w]+/g);
-    if (extracted) {
-      hashtags = [...new Set([...hashtags, ...extracted])];
-    }
-  }
+// returns { liked, likeCount }
+export const toggleLike = (postId) => apiRequest(`/posts/${postId}/like`, { method: 'POST' });
+// returns { bookmarked }
+export const toggleBookmark = (postId) => apiRequest(`/posts/${postId}/bookmark`, { method: 'POST' });
+export const reportPost = (postId, reason) =>
+  apiRequest(`/posts/${postId}/report`, { method: 'POST', body: { reason } });
 
-  const newPost = {
-    ...postData,
-    id: crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(),
-    hashtags,
-    createdAt: new Date().toISOString(),
-    likedBy: [],
-    bookmarkedBy: []
-  };
-  posts.push(newPost);
-  writeDB(DB_KEYS.POSTS, posts);
-  return newPost;
-};
+export const getCommentsByPostId = (postId) => apiRequest(`/posts/${postId}/comments`);
+export const createComment = (postId, content) =>
+  apiRequest(`/posts/${postId}/comments`, { method: 'POST', body: { content } });
+export const deleteComment = (commentId) => apiRequest(`/comments/${commentId}`, { method: 'DELETE' });
 
-export const updatePost = (postId, changes) => {
-  const posts = readDB(DB_KEYS.POSTS);
-  const index = posts.findIndex(p => p.id === postId);
-  if (index !== -1) {
-    let hashtags = changes.hashtags || posts[index].hashtags;
-    if (changes.content) {
-      const extracted = changes.content.match(/#[\w]+/g);
-      if (extracted) {
-        hashtags = [...new Set([...(changes.hashtags || []), ...extracted])];
-      }
-    }
-
-    posts[index] = { 
-      ...posts[index], 
-      ...changes, 
-      hashtags,
-      updatedAt: new Date().toISOString() 
-    };
-    writeDB(DB_KEYS.POSTS, posts);
-    return posts[index];
-  }
-  return null;
-};
-
-export const deletePost = (postId) => {
-  const posts = readDB(DB_KEYS.POSTS);
-  writeDB(DB_KEYS.POSTS, posts.filter(p => p.id !== postId));
-  
-  // Clean up comments
-  const comments = readDB(DB_KEYS.COMMENTS);
-  writeDB(DB_KEYS.COMMENTS, comments.filter(c => c.postId !== postId));
-};
-
-export const toggleLike = (postId, userId) => {
-  const posts = readDB(DB_KEYS.POSTS);
-  const post = posts.find(p => p.id === postId);
-  if (post) {
-    post.likedBy = post.likedBy || [];
-    if (post.likedBy.includes(userId)) {
-      post.likedBy = post.likedBy.filter(id => id !== userId);
-    } else {
-      post.likedBy.push(userId);
-    }
-    writeDB(DB_KEYS.POSTS, posts);
-    return post;
-  }
-  return null;
-};
-
-export const toggleBookmark = (postId, userId) => {
-  const posts = readDB(DB_KEYS.POSTS);
-  const post = posts.find(p => p.id === postId);
-  if (post) {
-    post.bookmarkedBy = post.bookmarkedBy || [];
-    if (post.bookmarkedBy.includes(userId)) {
-      post.bookmarkedBy = post.bookmarkedBy.filter(id => id !== userId);
-    } else {
-      post.bookmarkedBy.push(userId);
-    }
-    writeDB(DB_KEYS.POSTS, posts);
-    return post;
-  }
-  return null;
-};
-
-// --- Comments ---
-export const getCommentsByPostId = (postId) => {
-  return readDB(DB_KEYS.COMMENTS)
-    .filter(c => c.postId === postId)
-    .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-};
-
-export const createComment = (commentData) => {
-  const comments = readDB(DB_KEYS.COMMENTS);
-  const newComment = {
-    ...commentData,
-    id: crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(),
-    createdAt: new Date().toISOString()
-  };
-  comments.push(newComment);
-  writeDB(DB_KEYS.COMMENTS, comments);
-  return newComment;
-};
-
-export const deleteComment = (commentId) => {
-  const comments = readDB(DB_KEYS.COMMENTS);
-  writeDB(DB_KEYS.COMMENTS, comments.filter(c => c.id !== commentId));
-};
+// Stories, groups, follows and hidden posts below are still kept in this browser (not in the class diagrams).
 
 // --- Stories ---
 export const getStories = () => {
@@ -258,12 +165,4 @@ export const hidePost = (postId, userId) => {
 
 export const getHiddenPosts = (userId) => {
   return readDB(DB_KEYS.HIDDEN).filter(h => h.userId === userId).map(h => h.postId);
-};
-
-export const reportPost = (postId, userId, reason = '') => {
-  const reports = readDB(DB_KEYS.REPORTS);
-  if (!reports.some(r => r.postId === postId && r.userId === userId)) {
-    reports.push({ postId, userId, reason, createdAt: new Date().toISOString() });
-    writeDB(DB_KEYS.REPORTS, reports);
-  }
 };

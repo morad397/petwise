@@ -21,6 +21,8 @@ import Signup from './pages/Signup';
 import Appointments from './pages/Appointments';
 import Sos from './pages/Sos';
 import Shop from './pages/Shop';
+import Checkout from './pages/Checkout';
+import Orders from './pages/Orders';
 import Reminders from './pages/Reminders';
 import Community from './pages/Community';
 import AiVet from './pages/AiVet';
@@ -91,6 +93,8 @@ function App() {
           <Route path="/appointments" element={<Appointments />} />
           <Route path="/sos" element={<Sos />} />
           <Route path="/shop" element={<Shop />} />
+          <Route path="/checkout" element={<Checkout />} />
+          <Route path="/orders" element={<Orders />} />
           <Route path="/reminders" element={<Reminders />} />
           <Route path="/community" element={<Community />} />
           <Route path="/ai-vet" element={<AiVet />} />

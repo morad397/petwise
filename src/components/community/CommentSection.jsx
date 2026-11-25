@@ -1,55 +1,72 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Trash2 } from 'lucide-react';
 import { getCommentsByPostId, createComment, deleteComment } from '../../services/communityService';
 import UserAvatar from '../UserAvatar';
 
-export default function CommentSection({ postId, currentUser, users, onCommentCountChange }) {
+export default function CommentSection({ postId, currentUser, onCommentCountChange }) {
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
+  const [isSending, setIsSending] = useState(false);
 
-  const loadComments = () => {
-    const fetched = getCommentsByPostId(postId);
+  const showComments = (fetched) => {
     setComments(fetched);
     if (onCommentCountChange) onCommentCountChange(fetched.length);
   };
 
-  useEffect(() => {
-    loadComments();
-  }, [postId]);
+  const loadComments = () =>
+    getCommentsByPostId(postId)
+      .then(showComments)
+      .catch((err) => console.error('Failed to load comments', err));
 
-  const handlePostComment = (e) => {
+  useEffect(() => {
+    let cancelled = false;
+    getCommentsByPostId(postId)
+      .then((fetched) => {
+        if (cancelled) return;
+        setComments(fetched);
+        if (onCommentCountChange) onCommentCountChange(fetched.length);
+      })
+      .catch((err) => console.error('Failed to load comments', err));
+    return () => {
+      cancelled = true;
+    };
+  }, [postId, onCommentCountChange]);
+
+  const handlePostComment = async (e) => {
     e.preventDefault();
     if (!newComment.trim()) return;
-    
-    createComment({
-      postId,
-      authorId: currentUser.id,
-      content: newComment.trim()
-    });
-    setNewComment('');
-    loadComments();
+    setIsSending(true);
+    try {
+      await createComment(postId, newComment.trim());
+      setNewComment('');
+      await loadComments();
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setIsSending(false);
+    }
   };
 
-  const handleDelete = (commentId) => {
-    if (window.confirm("Delete this comment?")) {
-      deleteComment(commentId);
-      loadComments();
+  const handleDelete = async (commentId) => {
+    if (!window.confirm('Delete this comment?')) return;
+    try {
+      await deleteComment(commentId);
+      await loadComments();
+    } catch (err) {
+      alert(err.message);
     }
   };
 
   return (
     <div className="comment-section">
-      {/* Existing Comments */}
-      {comments.map(comment => {
-        const author = users.find(u => u.id === comment.authorId);
+      {comments.map((comment) => {
         const canDelete = currentUser.id === comment.authorId || currentUser.role === 'ADMIN';
-        
         return (
           <div key={comment.id} className="comment-item">
-            <UserAvatar user={author} size={32} />
+            <UserAvatar user={{ fullName: comment.authorName }} size={32} />
             <div className="comment-content">
               <div className="comment-header">
-                <strong>{author?.name || author?.fullName || 'Unknown'}</strong>
+                <strong>{comment.authorName}</strong>
                 {canDelete && (
                   <button onClick={() => handleDelete(comment.id)} style={{ border: 'none', background: 'transparent', color: '#cbd5e1', cursor: 'pointer' }}>
                     <Trash2 size={14} />
@@ -65,16 +82,15 @@ export default function CommentSection({ postId, currentUser, users, onCommentCo
         );
       })}
 
-      {/* Input */}
       <form onSubmit={handlePostComment} className="comment-input-area">
         <UserAvatar user={currentUser} size={32} />
-        <input 
-          type="text" 
-          placeholder="Write a comment..." 
+        <input
+          type="text"
+          placeholder="Write a comment..."
           value={newComment}
           onChange={(e) => setNewComment(e.target.value)}
         />
-        <button type="submit" className="btn btn-primary" style={{ padding: '8px 16px', borderRadius: '99px' }} disabled={!newComment.trim()}>
+        <button type="submit" className="btn btn-primary" style={{ padding: '8px 16px', borderRadius: '99px' }} disabled={!newComment.trim() || isSending}>
           Post
         </button>
       </form>

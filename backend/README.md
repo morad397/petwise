@@ -32,6 +32,12 @@ backend/
 | `treatments` | TreatmentRecord | pet_id, kind (VET_VISIT / MEDICATION), diagnosis, treatment_date, medication, appointment_id |
 | `weights` | WeightRecord | pet_id, weight_kg, recorded_date |
 | `reminders` | Reminder | user_id, pet_id, type, title, due_date, is_completed, source (set when created automatically) |
+| `products` | Product / Category | name, category, price, stock_quantity, image_url, status |
+| `carts` | Cart / CartItem | _id = user id, items [{product_id, quantity}] |
+| `orders` | Order / OrderItem / Address | user_id, items (copied at order time), total_amount, payment_method, payment_status, status, shipping_address |
+| `posts` | CommunityPost / Like | author_id, content, media_url, hashtags, liked_by [user ids], bookmarked_by, comment_count |
+| `comments` | Comment | post_id, author_id, content |
+| `post_reports` | — | post_id, reported_by, reason |
 | `schedule_blocks` | Schedule | clinic_id, date, time, reason (times staff blocked) |
 | `appointments` | Appointment | user_id, pet_id, clinic_id, service, appointment_date, appointment_time, status, suggested_date/time, staff_note |
 | `counters` | — | next id for each collection |
@@ -130,6 +136,29 @@ about a minute while it wakes up, so open the site a minute before a demo.
 | DELETE | `/api/staff/schedule/blocks/{id}` | clinic staff | Reopen a blocked time |
 
 \* clinic staff only for pets that have an appointment at their own clinic.
+
+### Module 4: shop, orders, community
+
+| Method | Path | Who | What |
+|---|---|---|---|
+| GET | `/api/products` | anyone | Active products (`?include_hidden=true` for admin lists) |
+| POST/PUT/DELETE | `/api/products[/{id}]` | admin | Manage products and stock |
+| GET | `/api/cart` | logged in | My cart with current prices, total and stock |
+| PUT | `/api/cart/items/{productId}` | logged in | Add / set quantity (refused above stock) |
+| DELETE | `/api/cart/items/{productId}` · `/api/cart` | logged in | Remove an item / empty the cart |
+| POST | `/api/orders` | logged in | Place order: re-checks stock, takes it, empties cart |
+| GET | `/api/orders[/{id}]` | logged in | My orders (admin: all) |
+| POST | `/api/orders/{id}/cancel` | order owner | Cancel while PROCESSING (stock back, refund) |
+| POST | `/api/orders/{id}/status` | admin | SHIPPED / DELIVERED / CANCELLED |
+| GET/POST | `/api/posts` | logged in | Feed (`?hashtag=`, `?saved=true`) / new post |
+| PUT | `/api/posts/{id}` | author | Edit |
+| DELETE | `/api/posts/{id}` | author, admin | Delete (with its comments) |
+| POST | `/api/posts/{id}/like` · `/bookmark` · `/report` | logged in | Toggle like / save, report |
+| GET/POST | `/api/posts/{id}/comments` | logged in | Comments |
+| DELETE | `/api/comments/{id}` | author, admin | Delete a comment |
+
+Payment is simulated (test environment): "TEST_PAYMENT" is marked paid with a fake reference,
+"CASH_ON_DELIVERY" is paid on delivery. No card details are collected or stored.
 
 Appointment flow: `PENDING` → `CONFIRMED` (owner gets a reminder) → `IN_PROGRESS` → `COMPLETED`
 (saved as a vet visit in the pet's history). Staff can also `REJECTED` or suggest a new time

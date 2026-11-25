@@ -87,4 +87,5 @@ def delete_user(user_id: int, db: Database = Depends(get_db), admin: dict = Depe
     db.pets.delete_many({"owner_id": user_id})
     delete_pet_data(db, pet_ids)
     db.reminders.delete_many({"user_id": user_id})
+    db.carts.delete_one({"_id": user_id})
     return Response(status_code=status.HTTP_204_NO_CONTENT)
